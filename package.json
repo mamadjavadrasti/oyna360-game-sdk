@@ -1,0 +1,56 @@
+{
+  "name": "@platform/game-sdk",
+  "version": "0.4.0",
+  "description": "PlayHub Game SDK — postMessage bridge for iframe games (init, scores, achievements, gem→coin).",
+  "license": "MIT",
+  "author": "PlayHub",
+  "keywords": [
+    "playhub",
+    "game-sdk",
+    "iframe",
+    "postmessage",
+    "leaderboard",
+    "achievements"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"No lint configured for @platform/game-sdk\""
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mamadjavadrasti/playhub-game-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mamadjavadrasti/playhub-game-sdk/issues"
+  },
+  "homepage": "https://github.com/mamadjavadrasti/playhub-game-sdk#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

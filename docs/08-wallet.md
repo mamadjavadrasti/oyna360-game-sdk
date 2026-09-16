@@ -1,59 +1,32 @@
-# 08 — کیف پول جِم و تبدیل به سکه
+# کیف‌پول جِم — `getWallet` / `convertGems`
 
-جِم ارز پلتفرم است. سکه متعلق به **خود بازی** است؛ پلتفرم فقط جِم کم می‌کند و مقدار سکهٔ معادل را برمی‌گرداند تا بازی به کیف خودش اضافه کند.
+جِم ارز پلتفرم است. تبدیل به «سکه داخل بازی» با نرخ `coinsPerGem` همان بازی انجام می‌شود.
 
-## نرخ تبدیل
-
-در پنل ادمین → ویرایش بازی → **سکه به ازای هر جِم** (`coinsPerGem`)
-
-مثال: `100` یعنی `1 جِم = 100 سکه`
-
-مقدار `0` تبدیل را برای آن بازی غیرفعال می‌کند.
-
-## SDK
-
-```typescript
-import { PlatformSDK } from '@platform/game-sdk';
-
-await PlatformSDK.init();
-
-// موجودی جِم + نرخ این بازی
+```ts
 const wallet = await PlatformSDK.getWallet();
-console.log(wallet.gems, wallet.coinsPerGem);
+// { gems, coinsPerGem, gameSlug }
 
-// تبدیل ۱۰ جِم
-const result = await PlatformSDK.convertGems(10);
-// result.coinsReceived → به کیف سکهٔ بازی اضافه کنید
-// result.gemsRemaining → موجودی باقی‌مانده جِم
-addCoinsToPlayer(result.coinsReceived);
+const result = await PlatformSDK.convertGems(5);
+// { gemsSpent, coinsReceived, coinsPerGem, gemsRemaining, gameSlug }
 ```
 
-## پاسخ‌ها
+## مسئولیت بازی
 
-### `getWallet()` → `WalletBalanceResponse`
+پلتفرم جِم را کم می‌کند و `coinsReceived` را برمی‌گرداند.  
+**اعتبار سکه داخل اقتصاد خودتان** با شماست (در سرور/کلاینت بازی اعمال کنید).
 
-| فیلد | توضیح |
-|------|--------|
-| `gems` | موجودی جِم کاربر |
-| `coinsPerGem` | نرخ این بازی |
-| `gameSlug` | اسلاگ بازی |
+## محدودیت
 
-### `convertGems(n)` → `ConvertGemsResponse`
+- `gems` باید عدد صحیح مثبت باشد.
+- فقط **Production iframe** تا فاز B؛ در Direct Mode فعلاً خطا می‌دهد.
 
-| فیلد | توضیح |
-|------|--------|
-| `gemsSpent` | جِم کم‌شده |
-| `coinsReceived` | سکه‌ای که بازی باید بدهد |
-| `coinsPerGem` | نرخ استفاده‌شده |
-| `gemsRemaining` | موجودی بعد از تبدیل |
-| `gameSlug` | اسلاگ بازی |
+```ts
+try {
+  const { coinsReceived } = await PlatformSDK.convertGems(amount);
+  await creditLocalCoins(coinsReceived);
+} catch (e) {
+  showError(e);
+}
+```
 
-## خطاهای رایج
-
-- `Insufficient gems` — موجودی کافی نیست
-- `Gem exchange is disabled` — `coinsPerGem === 0`
-- timeout — بازی خارج از iframe پلتفرم است
-
-## بعدی
-
-→ [07-postmessage-protocol.md](./07-postmessage-protocol.md)
+بعدی: [09-direct-development.md](./09-direct-development.md) · [10-achievements.md](./10-achievements.md)

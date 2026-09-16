@@ -1,134 +1,45 @@
-# 07 — پروتکل postMessage (مرجع)
+# پروتکل postMessage (Production)
 
-مرجع پیام‌های ردوبدل شده بین **iframe (بازی)** و **parent (پلتفرم)**.
+در Production، بازی داخل iframe است و با **صفحهٔ parent پلتفرم** حرف می‌زند — نه مستقیم با REST برای این عملیات.
 
-## جهت: Parent → Game
+## از بازی → پلتفرم
 
-### `platform:init`
+| `type` | نقش |
+|--------|-----|
+| `platform:ready` | SDK لود شد؛ لطفاً init بفرست |
+| `platform:session:end` | بستن سشن |
+| `platform:score:submit` | ثبت امتیاز (+ `requestId`, `sessionToken`, `score`) |
+| `platform:leaderboard:get` | درخواست لیدربورد |
+| `platform:achievement:unlock` / `platform:achievements:get` | دستاورد |
+| `platform:wallet:get` / `platform:gems:exchange` | کیف‌پول |
+| `platform:lobby:ready` | (از lobby-sdk) درخواست مجدد init |
 
-ارسال context اولیه بعد از load یا `platform:ready`.
+## از پلتفرم → بازی
 
-```typescript
+| `type` | نقش |
+|--------|-----|
+| `platform:init` | Context کامل |
+| `platform:score:result` و بقیه `*:result` | پاسخ RPC با همان `requestId` |
+
+## `platform:init` (شکل)
+
+```ts
 {
-  type: 'platform:init';
-  version: string;       // e.g. "0.2.0"
-  session: { id: string; token: string };
-  user: { id, username, displayName, avatarUrl };
-  game: { slug, name };
+  type: 'platform:init',
+  version: string,
+  session: { id, token },
+  user: { id, username, displayName, avatarUrl },
+  game: { slug, name },
+  avatar: { presetId, presetKey, presetKind, customConfig },
+  avatarBases?: [{ id, glbUrl }],
+  lobby?: { wsUrl, roomId, strictRoom? }
 }
 ```
 
----
+بازی‌ساز معمولاً لازم نیست این پیام‌ها را دستی بسازد؛ `PlatformSDK` و parent پلتفرم این کار را می‌کنند.
 
-### `platform:score:result`
+## Direct Development
 
-پاسخ به `platform:score:submit`.
+به‌جای parent، Authorize HTTP استفاده می‌شود؛ ولی **شکل نهایی Context همان `SdkInitPayload` است** تا lobby-sdk و کد بازی یکسان بمانند.
 
-```typescript
-{
-  type: 'platform:score:result';
-  requestId: string;
-  result?: SubmitScoreResponse;
-  error?: string;
-}
-```
-
----
-
-### `platform:leaderboard:result`
-
-پاسخ به `platform:leaderboard:get`.
-
-```typescript
-{
-  type: 'platform:leaderboard:result';
-  requestId: string;
-  result?: LeaderboardResponse;
-  error?: string;
-}
-```
-
----
-
-## جهت: Game → Parent
-
-### `platform:ready`
-
-SDK بلافاصله بعد از load می‌فرستد — «آماده دریافت init هستم».
-
-```typescript
-{ type: 'platform:ready' }
-```
-
----
-
-### `platform:session:end`
-
-```typescript
-{
-  type: 'platform:session:end';
-  sessionToken: string;
-}
-```
-
----
-
-### `platform:score:submit`
-
-```typescript
-{
-  type: 'platform:score:submit';
-  requestId: string;
-  sessionToken: string;
-  score: number;
-}
-```
-
----
-
-### `platform:leaderboard:get`
-
-```typescript
-{
-  type: 'platform:leaderboard:get';
-  requestId: string;
-  limit?: number;
-}
-```
-
----
-
-## امنیت
-
-| موضوع | رفتار |
-|-------|--------|
-| **Origin check** | Parent فقط پیام‌های origin مطابق `entryUrl` را می‌پذیرد |
-| **Session token** | submitScore فقط با token سشن خود بازیکن |
-| **targetOrigin** | Parent init را به origin بازی می‌فرستد (نه `*`) |
-
-## پیاده‌سازی بدون SDK
-
-اگر نمی‌خواهید از `@platform/game-sdk` استفاده کنید:
-
-```javascript
-window.parent.postMessage({ type: 'platform:ready' }, '*');
-
-window.addEventListener('message', (e) => {
-  if (e.data?.type === 'platform:init') {
-    window.__platform = e.data;
-  }
-});
-```
-
-استفاده از SDK رسمی توصیه می‌شود — timeout، requestId و type safety را handle می‌کند.
-
----
-
-## نسخه‌های SDK
-
-| نسخه | قابلیت‌ها |
-|------|-----------|
-| **0.1.0** | init, getUser, getSession, isReady, endSession |
-| **0.2.0** | + submitScore, getLeaderboard |
-
-Types کامل در `@platform/types` — `SDK_VERSION`, `PlatformInboundMessage`, ...
+بعدی: [08-wallet.md](./08-wallet.md)

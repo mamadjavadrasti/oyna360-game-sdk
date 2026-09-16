@@ -1,6 +1,15 @@
 /** Public SDK contract — keep in sync with platform `@platform/types` when protocol changes. */
 
-export const SDK_VERSION = '0.4.0';
+export const SDK_VERSION = '0.5.0';
+
+export type AvatarPresetKind = 'procedural' | 'glb';
+
+export interface SdkLobbyAvatar {
+  presetId: string;
+  presetKey: string;
+  presetKind: AvatarPresetKind;
+  customConfig: Record<string, unknown>;
+}
 
 export interface SdkUser {
   id: string;
@@ -19,18 +28,40 @@ export interface SdkGameInfo {
   name: string;
 }
 
+/** Same shape as platform `platform:init` / lobby SdkInitPayload. */
 export interface SdkInitPayload {
   session: SdkSession;
   user: SdkUser;
   game: SdkGameInfo;
+  avatar: SdkLobbyAvatar;
+  avatarBases?: Array<{ id: string; glbUrl: string }>;
+  lobby?: {
+    wsUrl: string;
+    roomId: string;
+    strictRoom?: boolean;
+  };
 }
 
-export interface PlatformInitMessage {
+export interface PlatformInitMessage extends SdkInitPayload {
   type: 'platform:init';
   version: string;
-  session: SdkSession;
-  user: SdkUser;
-  game: SdkGameInfo;
+}
+
+export interface PlatformSdkInitOptions {
+  /** Iframe wait timeout (ms). Direct mode uses a short probe then bootstrap. */
+  timeout?: number;
+  /**
+   * Platform API base including `/api`, e.g. `https://oyna360.ir/api`.
+   * Required for Direct Development Mode.
+   */
+  platformUrl?: string;
+  /**
+   * Platform web origin for the authorize page, e.g. `https://oyna360.ir`.
+   * Defaults to origin of `platformUrl` without `/api`.
+   */
+  platformWebUrl?: string;
+  /** Published game slug. Required for Direct Development Mode. */
+  gameSlug?: string;
 }
 
 export interface LeaderboardEntry {

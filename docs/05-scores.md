@@ -1,90 +1,30 @@
-# 05 — `submitScore()`
+# امتیاز — `submitScore`
 
-**نسخه SDK:** `0.2.0+`
+بهترین امتیاز بازیکن برای این بازی را ثبت می‌کند (keep-best).
 
-## توضیح
-
-امتیاز بازیکن را ثبت می‌کند. برای هر `(user, game)` فقط **بهترین امتیاز** نگه داشته می‌شود (high score).
-
-## امضا
-
-```typescript
-function submitScore(score: number): Promise<SubmitScoreResponse>;
+```ts
+const result = await PlatformSDK.submitScore(4200);
+// { score, previousBest, isNewBest, rank }
 ```
 
-| پارامتر | نوع | توضیح |
-|---------|-----|--------|
-| `score` | `number` | عدد صحیح ≥ 0 |
+## پیش‌نیاز
 
-## خروجی — `SubmitScoreResponse`
-
-```typescript
-interface SubmitScoreResponse {
-  score: number;           // بهترین امتیاز فعلی
-  previousBest: number | null;
-  isNewBest: boolean;      // آیا این submit رکورد جدید زد؟
-  rank: number;            // رتبه فعلی در leaderboard
-}
-```
-
-## مثال — پایان بازی
-
-```typescript
-import { PlatformSDK } from '@platform/game-sdk';
-
-async function onGameOver(points: number) {
-  await PlatformSDK.init();
-
-  try {
-    const result = await PlatformSDK.submitScore(points);
-
-    if (result.isNewBest) {
-      showToast(`رکورد جدید! رتبه ${result.rank}`);
-    } else {
-      showToast(`بهترین شما: ${result.score} — رتبه ${result.rank}`);
-    }
-  } catch (err) {
-    console.warn('Score submit failed', err);
-  }
-}
-```
-
-## مثال — امتیاز لحظه‌ای (checkpoint)
-
-```typescript
-// هر 60 ثانیه بهترین progress را بفرستید
-setInterval(async () => {
-  if (currentScore > lastSubmitted) {
-    await PlatformSDK.submitScore(currentScore);
-    lastSubmitted = currentScore;
-  }
-}, 60_000);
-```
-
-## API سمت سرور
-
-```
-POST /api/games/:slug/scores
-Authorization: Bearer <sessionToken>
-Body: { "score": 12500 }
-```
-
-SDK این را از طریق postMessage bridge انجام می‌دهد — **نیازی به فراخوانی مستقیم API از بازی نیست**.
+- `init()` موفق
+- سشن فعال
+- **فعلاً فقط Production iframe** — در Direct Development این متد خطا می‌دهد تا فاز B
 
 ## قوانین
 
-- امتیاز **کمتر** از رکورد قبلی ذخیره نمی‌شود، ولی `rank` بر اساس best فعلی برمی‌گردد.
-- امتیاز اعشاری به **integer** گرد می‌شود (`Math.floor`).
-- سشن باید **فعال** باشد (همان tab play باز باشد).
+- `score` باید عدد نامنفی و finite باشد؛ اعشار truncate می‌شود.
+- امتیاز بدتر از بهترین قبلی، best را عوض نمی‌کند (`isNewBest: false`).
 
-## خطاها
+## مثال
 
-| پیام | علت |
-|------|-----|
-| `Platform SDK request timeout` | parent پاسخ نداد — reload صفحه play |
-| `Session does not match game` | slug بازی با سشن همخوان نیست |
-| `Invalid or expired session` | سشن بسته شده — `init()` دوباره |
+```ts
+await PlatformSDK.init();
+// … پایان مسابقه
+const { isNewBest, rank } = await PlatformSDK.submitScore(finalScore);
+if (isNewBest) showToast(`رکورد جدید! رتبه ${rank}`);
+```
 
-## بعدی
-
-→ [06-leaderboard.md](./06-leaderboard.md)
+بعدی: [06-leaderboard.md](./06-leaderboard.md)

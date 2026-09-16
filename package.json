@@ -1,11 +1,11 @@
 {
   "name": "@platform/game-sdk",
-  "version": "0.4.0",
-  "description": "PlayHub Game SDK — postMessage bridge for iframe games (init, scores, achievements, gem→coin).",
+  "version": "0.5.0",
+  "description": "oyna360 Game SDK — postMessage bridge + Direct Development Mode (init, scores, achievements, gem→coin).",
   "license": "MIT",
-  "author": "PlayHub",
+  "author": "oyna360",
   "keywords": [
-    "playhub",
+    "oyna360",
     "game-sdk",
     "iframe",
     "postmessage",

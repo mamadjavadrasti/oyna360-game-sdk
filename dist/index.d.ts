@@ -1,12 +1,25 @@
-import { SDK_VERSION, type AchievementsResponse, type SdkInitPayload, type SdkSession, type SdkUser, type LeaderboardResponse, type SubmitScoreResponse, type UnlockAchievementResponse, type WalletBalanceResponse, type ConvertGemsResponse } from './types';
+import { SDK_VERSION, type PlatformInitMessage, type PlatformSdkInitOptions, type AchievementsResponse, type SdkInitPayload, type SdkSession, type SdkUser, type LeaderboardResponse, type SubmitScoreResponse, type UnlockAchievementResponse, type WalletBalanceResponse, type ConvertGemsResponse } from './types';
 export { SDK_VERSION };
-export type { SdkInitPayload, SdkSession, SdkUser, SdkGameInfo, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse, AchievementItem, AchievementsResponse, UnlockAchievementResponse, WalletBalanceResponse, ConvertGemsResponse, } from './types';
-/** Wait for platform init payload (auto-resolves if already initialized). */
-export declare function init(options?: {
-    timeout?: number;
-}): Promise<SdkInitPayload>;
+export type { SdkInitPayload, SdkLobbyAvatar, SdkSession, SdkUser, SdkGameInfo, PlatformInitMessage, PlatformSdkInitOptions, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse, AchievementItem, AchievementsResponse, UnlockAchievementResponse, WalletBalanceResponse, ConvertGemsResponse, } from './types';
+declare global {
+    interface Window {
+        __OYNA360_PLATFORM_INIT__?: PlatformInitMessage;
+        __OYNA360_DEV__?: {
+            platformUrl?: string;
+            platformWebUrl?: string;
+            gameSlug?: string;
+        };
+    }
+}
+/**
+ * Wait for platform init payload.
+ * - Production iframe: receives `platform:init` from parent.
+ * - Direct Development: Oyna360 authorize → one-time code → standard SdkInitPayload.
+ */
+export declare function init(options?: PlatformSdkInitOptions): Promise<SdkInitPayload>;
 export declare function getUser(): SdkUser | null;
 export declare function getSession(): SdkSession | null;
+export declare function getInitPayload(): SdkInitPayload | null;
 export declare function isReady(): boolean;
 /** Submit score (keeps best score per player). Requires active session. */
 export declare function submitScore(score: number): Promise<SubmitScoreResponse>;
@@ -29,6 +42,7 @@ export declare const PlatformSDK: {
     init: typeof init;
     getUser: typeof getUser;
     getSession: typeof getSession;
+    getInitPayload: typeof getInitPayload;
     isReady: typeof isReady;
     submitScore: typeof submitScore;
     getLeaderboard: typeof getLeaderboard;

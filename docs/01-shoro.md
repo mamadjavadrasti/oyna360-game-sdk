@@ -1,113 +1,80 @@
-# 01 — شروع و نصب
-
-## این SDK چیست؟
-
-`@platform/game-sdk` پل ارتباطی بین **بازی شما** (در iframe) و **پلتفرم PlayHub** (صفحه parent) است.  
-همهٔ درخواست‌ها از طریق **`window.postMessage`** انجام می‌شود — بازی مستقیماً به API پلتفرم وصل نمی‌شود و نیازی به تنظیم CORS روی سرور بازی نیست.
-
-## پیش‌نیازها
-
-1. بازی روی URL خارجی (`entryUrl`) host شده باشد.
-2. `allowedOrigins` بازی در پنل ادمین شامل origin سرور بازی باشد.
-3. بازیکن از مسیر **`/play/:slug`** وارد شده و لاگین کرده باشد.
-4. `minSdkVersion` بازی ≤ نسخه SDK شما (پیش‌فرض `0.1.0`).
+# نصب و پیش‌نیاز
 
 ## نصب
 
-> آدرس `mamadjavadrasti/playhub-game-sdk` را با ریپوی واقعی GitHub عوض کنید.
-
-### از GitHub (پیشنهادی برای بازی‌سازان)
-
-**npm**
-
 ```bash
-npm install github:mamadjavadrasti/playhub-game-sdk#v0.4.0
+npm install github:mamadjavadrasti/playhub-game-sdk#v0.5.0
 ```
 
-**pnpm**
+Import:
 
-```bash
-pnpm add github:mamadjavadrasti/playhub-game-sdk#v0.4.0
-```
-
-**yarn**
-
-```bash
-yarn add mamadjavadrasti/playhub-game-sdk#v0.4.0
-```
-
-**در `package.json`**
-
-```json
-{
-  "dependencies": {
-    "@platform/game-sdk": "github:mamadjavadrasti/playhub-game-sdk#v0.4.0"
-  }
-}
-```
-
-### Monorepo پلتفرم (توسعه داخلی)
-
-```json
-{
-  "dependencies": {
-    "@platform/game-sdk": "workspace:*"
-  }
-}
-```
-
-```bash
-pnpm --filter @platform/game-sdk build
-```
-
-### کپی دستی `dist` (بدون package manager)
-
-1. از ریپو `dist/index.js` و در صورت نیاز `dist/index.d.ts` را بردارید.
-2. در بازی import کنید یا با bundler به باندل اضافه کنید.
-
-## Import
-
-```typescript
-// همه متدها
+```ts
 import { PlatformSDK } from '@platform/game-sdk';
-
-// یا tree-shake
-import {
-  init,
-  getUser,
-  submitScore,
-  getLeaderboard,
-  unlockAchievement,
-  getAchievements,
-  getWallet,
-  convertGems,
-  endSession,
-} from '@platform/game-sdk';
+// یا
+import { init, getUser, submitScore } from '@platform/game-sdk';
 ```
 
-## جریان کلی
+---
 
-```
-بازی (iframe)                    پلتفرم (parent)
-     │                                  │
-     │──── platform:ready ─────────────►│
-     │◄─── platform:init ──────────────│  (user, session, game)
-     │                                  │
-     │──── platform:score:submit ──────►│──► API
-     │◄─── platform:score:result ───────│
-     │                                  │
-     │──── platform:session:end ───────►│──► بستن سشن
-```
+## پیش‌نیاز ثبت بازی در ادمین oyna360
 
-## خطاهای رایج
+| فیلد | توضیح |
+|------|--------|
+| `slug` | شناسه یکتای بازی در URL: `/play/{slug}` |
+| `entryUrl` | آدرس باندل بازی (Production یا در Dev مثلاً `http://localhost:5180`) |
+| `allowedOrigins` | لیست originهای مجاز بازی به‌صورت `scheme://host:port` |
+| `minSdkVersion` | حداقل نسخه game-sdk (مثلاً `0.5.0`) |
+| وضعیت | بازی باید Published باشد |
 
-| خطا | علت | راه‌حل |
-|-----|-----|--------|
-| `init timeout` | بازی خارج از iframe پلتفرم باز شده | فقط از `/play/:slug` تست کنید |
-| `Session token missing` | سشن منقضی یا بسته شده | `init()` دوباره یا reload صفحه play |
-| `Score must be a non-negative number` | امتیاز منفی یا NaN | عدد صحیح ≥ 0 بفرستید |
-| پکیج resolve نمی‌شود | آدرس GitHub اشتباه / تگ نیست | `YOUR_ORG` و `#v0.4.0` را چک کنید؛ `dist/` در ریپو باشد |
+### مثال Origin
 
-## بعدی
+درست:
 
-→ [02-init.md](./02-init.md)
+- `https://games.example.com`
+- `http://localhost:5180`
+- `http://127.0.0.1:5173`
+- `http://192.168.1.20:5180`
+
+غلط:
+
+- فقط `localhost` بدون scheme
+- `*`
+- path مثل `http://localhost:5180/game/` به‌جای origin (origin همان `http://localhost:5180` است)
+
+---
+
+## Production — جریان بازیکن
+
+1. بازیکن در oyna360 لاگین می‌کند.
+2. به `/play/{slug}` می‌رود.
+3. پلتفرم سشن بازی می‌سازد و بازی را در iframe از `entryUrl` لود می‌کند.
+4. game-sdk با `platform:ready` اعلام آمادگی می‌کند.
+5. پلتفرم `platform:init` می‌فرستد.
+6. `PlatformSDK.init()` resolve می‌شود.
+
+بازی را **مستقیم** با باز کردن `entryUrl` در تب خالی تست Production نکنید؛ بدون parent، مسیر iframe کار نمی‌کند (مگر Direct Development را پیکربندی کرده باشید).
+
+---
+
+## Development — دو راه
+
+### الف) Direct Development (پیشنهادی اگر پلتفرم لوکال ندارید)
+
+بازی روی Vite؛ اتصال به سرور واقعی oyna360.  
+راهنما: [09-direct-development.md](./09-direct-development.md)
+
+### ب) iframe با entryUrl لوکال
+
+1. در ادمین موقتاً `entryUrl` = `http://localhost:PORT`
+2. `allowedOrigins` شامل همان origin
+3. از `/play/{slug}` روی سرور (یا پلتفرم لوکال) وارد شوید
+
+---
+
+## امنیت برای بازی‌ساز
+
+- `session.token` را در localStorage / Git نگذارید.
+- USER/PASS پلتفرم را در `.env` بازی نگذارید.
+- در Direct Mode از Authorize رسمی استفاده کنید؛ توکن یک‌بارمصرف است.
+
+بعدی: [02-init.md](./02-init.md)

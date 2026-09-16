@@ -1,75 +1,136 @@
-# 02 — `init()`
+# `init()` و Platform Context
 
-## توضیح
-
-اولین متدی که باید صدا بزنید. منتظر می‌ماند تا پلتفرم اطلاعات **کاربر**، **سشن** و **بازی** را بفرستد.
+اولین فراخوانی تقریباً همیشه `PlatformSDK.init()` است.
 
 ## امضا
 
-```typescript
-function init(options?: { timeout?: number }): Promise<SdkInitPayload>;
+```ts
+function init(options?: PlatformSdkInitOptions): Promise<SdkInitPayload>;
+
+interface PlatformSdkInitOptions {
+  /** حداکثر انتظار (ms). در iframe پیش‌فرض ~10s؛ در Direct برای authorize می‌توانید بیشتر بدهید. */
+  timeout?: number;
+  /** پایه API با `/api` — الزامی در Direct Development */
+  platformUrl?: string;
+  /** origin وب پلتفرم برای صفحه Authorize — در Direct اگر API و Web جدا باشند الزامی */
+  platformWebUrl?: string;
+  /** slug بازی published — الزامی در Direct Development */
+  gameSlug?: string;
+}
 ```
 
-| پارامتر | پیش‌فرض | توضیح |
-|---------|---------|--------|
-| `options.timeout` | `10000` (ms) | حداکثر انتظار برای init |
+جایگزین تنظیمات Direct:
+
+```ts
+window.__OYNA360_DEV__ = {
+  platformUrl: 'https://oyna360.ir/api',
+  platformWebUrl: 'https://oyna360.ir',
+  gameSlug: 'my-game',
+};
+```
+
+---
 
 ## خروجی — `SdkInitPayload`
 
-```typescript
+همان Context استاندارد Production (`platform:init`):
+
+```ts
 interface SdkInitPayload {
   user: SdkUser;
   session: SdkSession;
   game: SdkGameInfo;
-}
-
-interface SdkUser {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
-}
-
-interface SdkSession {
-  id: string;
-  token: string;   // برای API سمت سرور — SDK خودش استفاده می‌کند
-}
-
-interface SdkGameInfo {
-  slug: string;
-  name: string;
+  avatar: SdkLobbyAvatar;
+  avatarBases?: Array<{ id: string; glbUrl: string }>;
+  lobby?: {
+    wsUrl: string;      // مثلاً https://oyna360.ir/lobby
+    roomId: string;     // مثلاً game:my-game
+    strictRoom?: boolean;
+  };
 }
 ```
 
-## مثال
+| فیلد | کاربرد |
+|------|--------|
+| `user` | نمایش نام، id |
+| `session` | `{ id, token }` — سشن بازی ephemeral |
+| `game` | `slug` / `name` |
+| `avatar` | ظاهر لابی برای lobby-sdk |
+| `avatarBases` | کاتالوگ GLB مشترک (اختیاری) |
+| `lobby` | آدرس WebSocket و اتاق — **هاردکد نکنید** |
 
-```typescript
-import { PlatformSDK } from '@platform/game-sdk';
+---
 
-try {
-  const { user, session, game } = await PlatformSDK.init({ timeout: 15_000 });
+## رفتار بر اساس محیط
 
-  document.getElementById('player')!.textContent = user.displayName;
-  console.log('Session:', session.id);
-  console.log('Game:', game.slug);
-} catch (err) {
-  console.error('SDK init failed:', err);
-  // بازی را در حالت مهمان یا offline ادامه دهید
-}
+### 1) داخل iframe پلتفرم (Production)
+
+1. SDK در صورت embed بودن، `platform:ready` به parent می‌فرستد.
+2. منتظر `platform:init` می‌ماند.
+3. Context را ذخیره می‌کند و همان را روی `window` هم برای lobby-sdk منتشر می‌کند.
+
+```ts
+const ctx = await PlatformSDK.init({ timeout: 15_000 });
 ```
 
-## رفتار داخلی
+### 2) تب مستقیم / بدون parent (Direct Development)
 
-1. SDK بلافاصله بعد از load، `platform:ready` به parent می‌فرستد.
-2. Parent (GameLauncher) با `platform:init` پاسخ می‌دهد.
-3. اگر init قبلاً انجام شده باشد، `init()` فوراً resolve می‌شود (idempotent).
+1. اگر `platformUrl` + `gameSlug` نباشد → خطای واضح.
+2. صفحه `/dev/game-auth` (popup یا redirect) باز می‌شود.
+3. با اکانت واقعی لاگین می‌کنید.
+4. code یک‌بارمصرف → `exchange` → همان `SdkInitPayload`.
 
-## نکات
+```ts
+const ctx = await PlatformSDK.init({
+  platformUrl: 'https://oyna360.ir/api',
+  platformWebUrl: 'https://oyna360.ir',
+  gameSlug: 'my-game',
+  timeout: 120_000,
+});
+```
 
-- **همیشه** قبل از `submitScore` / `getLeaderboard` یک بار `init()` صدا بزنید (یا از متدهایی استفاده کنید که خودشان init می‌کنند).
-- `getUser()` قبل از init مقدار `null` برمی‌گرداند.
-- token سشن را در localStorage بازی ذخیره **نکنید** — فقط در حافظه SDK معتبر است.
+### 3) Idempotent
 
-## بعدی
+اگر قبلاً init شده باشد، فراخوانی بعدی همان Promise/payload را می‌دهد.
 
-→ [03-user-session.md](./03-user-session.md)
+---
+
+## بعد از init
+
+```ts
+PlatformSDK.isReady();           // true
+PlatformSDK.getUser();           // SdkUser | null
+PlatformSDK.getSession();        // SdkSession | null
+PlatformSDK.getInitPayload();    // SdkInitPayload | null  (کامل)
+```
+
+---
+
+## تحویل به lobby-sdk
+
+روش توصیه‌شده:
+
+```ts
+const init = await PlatformSDK.init({ /* … */ });
+await PlatformLobby.create({
+  canvas,
+  platformInit: init,
+  roomId: init.lobby!.roomId,
+  wsUrl: init.lobby!.wsUrl,
+});
+```
+
+یا بعد از `init()` می‌توانید `PlatformLobby.createFromPlatform(canvas)` را بزنید (SDK لابی از Context منتشرشده روی window استفاده می‌کند).
+
+---
+
+## خطاهای رایج
+
+| پیام / وضعیت | معنی |
+|--------------|------|
+| `init timeout — is the game running inside the platform?` | iframe هستید ولی parent `platform:init` نفرستاده (یا دیر) |
+| `requires platformUrl + gameSlug` | Direct Mode بدون تنظیم |
+| `Development origin not allowed` | origin بازی در allowlist سرور نیست |
+| Authorize timeout | لاگین تمام نشد / popup بلاک شد |
+
+بعدی: [03-user-session.md](./03-user-session.md) · Direct: [09-direct-development.md](./09-direct-development.md)

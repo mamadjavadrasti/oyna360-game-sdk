@@ -1,78 +1,33 @@
-# 03 — کاربر و سشن
+# User و Session
 
-## `getUser()`
+بعد از `init()` موفق.
 
-کاربر لاگین‌شده‌ای که بازی را از پلتفرم باز کرده.
+## خواندن sync
 
-```typescript
-function getUser(): SdkUser | null;
-```
-
-```typescript
+```ts
 const user = PlatformSDK.getUser();
-if (user) {
-  showAvatar(user.avatarUrl, user.displayName);
-}
-```
+// { id, username, displayName, avatarUrl }
 
-- **Sync** — Promise نیست.
-- قبل از `init()` → `null`
-- ایمیل کاربر عمداً در SDK نیست (حریم خصوصی).
-
----
-
-## `getSession()`
-
-متادیتای سشن فعلی بازی.
-
-```typescript
-function getSession(): SdkSession | null;
-```
-
-```typescript
 const session = PlatformSDK.getSession();
-console.log(session?.id); // برای لاگ debug
+// { id, token }
 ```
 
-`token` را در UI نمایش ندهید — فقط SDK و bridge پلتفرم از آن استفاده می‌کنند.
+قبل از init هر دو `null` هستند.
 
----
+## نکات session
 
-## `isReady()`
+- `token` برای هویت سشن بازی است (با JWT لاگین کاربر فرق دارد).
+- عمر سشن محدود است و با activity تمدید می‌شود؛ آن را دائمی فرض نکنید.
+- در Git / `.env` / localStorage ذخیره نکنید.
+- برای lobby-sdk همان `session.token` از Context کافی است؛ خودتان به سوکت وصل نشوید مگر عمداً کلاینت سفارشی بنویسید.
 
-```typescript
-function isReady(): boolean;
+## نمایش در UI
+
+```ts
+const { user, game } = await PlatformSDK.init();
+title.textContent = `${user.displayName} — ${game.name}`;
 ```
 
-```typescript
-if (PlatformSDK.isReady()) {
-  enableMultiplayerFeatures();
-}
-```
+`avatarUrl` ممکن است `null` باشد؛ آواتار ۳D لابی از فیلد `avatar` در `getInitPayload()` می‌آید نه لزوماً از `avatarUrl`.
 
-معادل `getUser() !== null` — برای چک سریع قبل از render.
-
----
-
-## مثال ترکیبی
-
-```typescript
-await PlatformSDK.init();
-
-const user = PlatformSDK.getUser();
-const session = PlatformSDK.getSession();
-
-if (!user || !session) {
-  throw new Error('Platform context missing');
-}
-
-startGame({
-  playerId: user.id,
-  playerName: user.displayName,
-  sessionId: session.id,
-});
-```
-
-## بعدی
-
-→ [04-end-session.md](./04-end-session.md)
+بعدی: [04-end-session.md](./04-end-session.md)

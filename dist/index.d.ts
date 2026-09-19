@@ -23,7 +23,7 @@ export declare function getInitPayload(): SdkInitPayload | null;
 export declare function isReady(): boolean;
 /** Submit score (keeps best score per player). Requires active session. */
 export declare function submitScore(score: number): Promise<SubmitScoreResponse>;
-/** Fetch game leaderboard via platform bridge. */
+/** Fetch game leaderboard via platform bridge (iframe) or REST (Direct Dev). */
 export declare function getLeaderboard(limit?: number): Promise<LeaderboardResponse>;
 /** Unlock an achievement for the current player. Idempotent. */
 export declare function unlockAchievement(key: string): Promise<UnlockAchievementResponse>;

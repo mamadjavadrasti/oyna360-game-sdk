@@ -9,7 +9,7 @@ await PlatformSDK.endSession();
 ## رفتار
 
 - **Production (iframe):** پیام `platform:session:end` به parent فرستاده می‌شود؛ پلتفرم سشن را می‌بندد.
-- **Direct Development:** در فاز A بستن از طریق parent انجام نمی‌شود؛ برای خروج از لابی از APIهای lobby-sdk (`destroy` و خروج UI) استفاده کنید. بستن رسمی سشن HTTP در فازهای بعدی تکمیل می‌شود.
+- **Direct Development:** `POST {platformUrl}/sessions/end` با همان session token.
 
 ## کی صدا بزنید؟
 

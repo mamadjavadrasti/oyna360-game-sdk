@@ -1,4 +1,4 @@
-# @platform/game-sdk
+# @oyna360/game-sdk
 
 SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 
@@ -9,29 +9,37 @@ SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 - در **Production** داخل iframe پلتفرم کار کند
 - در **Development** بدون iframe، مستقیم به سرور oyna360 وصل شود
 
-**نسخه:** `0.5.0` · بدون وابستگی runtime · TypeScript داخل پکیج
+**نسخه:** `0.5.1` · بدون وابستگی runtime · TypeScript داخل پکیج
 
-> این SDK مسئول لابی ۳D نیست. برای لابی از [`@oyna360/lobby-sdk`](https://github.com/mamadjavadrasti/oyna360-lobby-sdk) استفاده کنید. این دو پکیج را ادغام نکنید.
+> این SDK مسئول لابی ۳D نیست. برای لابی از [`@oyna360/lobby-sdk`](https://www.npmjs.com/package/@oyna360/lobby-sdk) استفاده کنید. این دو پکیج را ادغام نکنید.
 
 ---
 
 ## نصب
 
 ```bash
-npm install github:mamadjavadrasti/playhub-game-sdk#v0.5.0
+npm install @oyna360/game-sdk
 # یا
-pnpm add github:mamadjavadrasti/playhub-game-sdk#v0.5.0
+pnpm add @oyna360/game-sdk
 ```
 
 ```json
 {
   "dependencies": {
-    "@platform/game-sdk": "github:mamadjavadrasti/playhub-game-sdk#v0.5.0"
+    "@oyna360/game-sdk": "^0.5.1"
   }
 }
 ```
 
-همیشه تگ نسخه‌ای را پین کنید که `dist/` داخل ریپو دارد.
+نسخه را در [npm](https://www.npmjs.com/package/@oyna360/game-sdk) ببینید و با `^` یا نسخهٔ دقیق پین کنید.
+
+### به‌روزرسانی
+
+```bash
+npm install @oyna360/game-sdk@latest
+# یا
+pnpm update @oyna360/game-sdk
+```
 
 ---
 
@@ -45,7 +53,7 @@ pnpm add github:mamadjavadrasti/playhub-game-sdk#v0.5.0
 در هر دو حالت API بازی یکسان است:
 
 ```ts
-import { PlatformSDK } from '@platform/game-sdk';
+import { PlatformSDK } from '@oyna360/game-sdk';
 
 const { user, game, session, avatar, lobby } = await PlatformSDK.init({
   // فقط برای Direct Development لازم است:
@@ -64,7 +72,7 @@ const { user, game, session, avatar, lobby } = await PlatformSDK.init({
 3. بازیکن از `/play/{slug}` وارد شود.
 
 ```ts
-import { PlatformSDK } from '@platform/game-sdk';
+import { PlatformSDK } from '@oyna360/game-sdk';
 
 async function boot() {
   const { user, game } = await PlatformSDK.init({ timeout: 15_000 });
@@ -105,6 +113,8 @@ await PlatformSDK.init();
 
 پنجرهٔ ورود oyna360 باز می‌شود؛ با اکانت واقعی وارد می‌شوید؛ SDK Context کامل (شامل `avatar` و `lobby`) را می‌گیرد.
 
+در Direct Development همان APIهای امتیاز، لیدربورد، دستاورد و کیف‌پول از طریق REST مستقیم به `platformUrl` صدا زده می‌شوند (بدون iframe). Origin بازی باید در `DEV_GAME_ORIGINS` / `allowedOrigins` و CORS باشد.
+
 جزئیات و تنظیم Origin: [docs/09-direct-development.md](./docs/09-direct-development.md)
 
 ---
@@ -134,14 +144,14 @@ await PlatformSDK.init();
 |-----|--------|:----------:|:----------:|
 | `init(options?)` | دریافت Context پلتفرم | ✅ | ✅ |
 | `getUser()` / `getSession()` / `getInitPayload()` / `isReady()` | خواندن وضعیت | ✅ | ✅ |
-| `endSession()` | بستن سشن | ✅ | محدود* |
-| `submitScore` / `getLeaderboard` | امتیاز | ✅ | فاز B* |
-| `unlockAchievement` / `getAchievements` | دستاورد | ✅ | فاز B* |
-| `getWallet` / `convertGems` | جِم | ✅ | فاز B* |
+| `endSession()` | بستن سشن | ✅ | ✅ |
+| `submitScore` / `getLeaderboard` | امتیاز | ✅ | ✅ |
+| `unlockAchievement` / `getAchievements` | دستاورد | ✅ | ✅ |
+| `getWallet` / `convertGems` | جِم | ✅ | ✅ |
 
-\* در Direct Mode فعلی، فراخوانی‌هایی که به parent iframe نیاز دارند خطا می‌دهند تا فاز B پیاده شود. برای لابی ۳D و سشن واقعی، `init()` کافی است.
+Production از `postMessage` به parent استفاده می‌کند؛ Direct Dev همان endpointهای REST را با session token صدا می‌زند.
 
-`PlatformSDK.version` → `'0.5.0'`
+`PlatformSDK.version` → `'0.5.1'`
 
 ---
 
@@ -150,7 +160,7 @@ await PlatformSDK.init();
 بعد از `init()`:
 
 ```ts
-import { PlatformSDK } from '@platform/game-sdk';
+import { PlatformSDK } from '@oyna360/game-sdk';
 import { PlatformLobby } from '@oyna360/lobby-sdk';
 
 const init = await PlatformSDK.init({ /* … */ });

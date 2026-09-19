@@ -11,7 +11,7 @@ const result = await PlatformSDK.submitScore(4200);
 
 - `init()` موفق
 - سشن فعال
-- **فعلاً فقط Production iframe** — در Direct Development این متد خطا می‌دهد تا فاز B
+- **Production:** از طریق iframe parent · **Direct Dev:** REST مستقیم به `platformUrl` (همان session token)
 
 ## قوانین
 

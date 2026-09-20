@@ -1,6 +1,6 @@
 /** Public SDK contract — keep in sync with platform `@platform/types` when protocol changes. */
 
-export const SDK_VERSION = '0.5.0';
+export const SDK_VERSION = '0.5.2';
 
 export type AvatarPresetKind = 'procedural' | 'glb';
 

@@ -21,11 +21,13 @@ console.log(location.origin);
 
 ## Direct: CORS
 
-مرورگر درخواست `POST …/dev/game-auth/exchange` را بلاک می‌کند اگر origin در CORS نباشد. با DevOps پلتفرم هماهنگ کنید.
+مرورگر درخواست‌های Direct (`/dev/game-auth/exchange`، score، wallet، …) را بلاک می‌کند اگر origin در CORS / `DEV_GAME_ORIGINS` / `allowedOrigins` نباشد.
 
 ## Score / wallet در Direct خطا می‌دهد
 
-عمدی است تا فاز B. برای تست امتیاز از مسیر Production iframe استفاده کنید.
+1. `platformUrl` در `init` / `__OYNA360_DEV__` ست شده باشد (game-sdk ≥ 0.5.1).
+2. Origin بازی در allowlist و CORS باشد.
+3. سشن هنوز فعال باشد (`endSession` نزده باشید).
 
 ## Context بدون avatar / lobby
 

@@ -15,10 +15,10 @@ const result = await PlatformSDK.convertGems(5);
 پلتفرم جِم را کم می‌کند و `coinsReceived` را برمی‌گرداند.  
 **اعتبار سکه داخل اقتصاد خودتان** با شماست (در سرور/کلاینت بازی اعمال کنید).
 
-## محدودیت
+## نکات
 
 - `gems` باید عدد صحیح مثبت باشد.
-- فقط **Production iframe** تا فاز B؛ در Direct Mode فعلاً خطا می‌دهد.
+- در **Production** و **Direct Dev** هر دو کار می‌کند (iframe یا REST با session token).
 
 ```ts
 try {

@@ -7,7 +7,7 @@ const board = await PlatformSDK.getLeaderboard(20);
 
 - `limit` پیش‌فرض ۲۰
 - نیاز به `init()` دارد
-- **Production iframe**؛ Direct Mode در فاز B
+- **Production** و **Direct Dev** هر دو کار می‌کنند (iframe یا REST)
 
 ```ts
 const { entries } = await PlatformSDK.getLeaderboard(10);

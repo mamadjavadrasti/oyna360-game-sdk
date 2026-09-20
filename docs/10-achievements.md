@@ -13,7 +13,7 @@ const unlocked = await PlatformSDK.unlockAchievement('first_win');
 - `key` باید در ادمین برای همان بازی تعریف شده باشد.
 - `unlockAchievement` idempotent است؛ تکرار همان کلید `alreadyUnlocked: true` می‌دهد.
 - نیاز به سشن فعال و `init()` دارد.
-- **Production iframe**؛ Direct Mode در فاز B.
+- در **Production** و **Direct Dev** هر دو کار می‌کند.
 
 ```ts
 await PlatformSDK.init();

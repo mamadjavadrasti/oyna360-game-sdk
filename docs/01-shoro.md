@@ -3,15 +3,33 @@
 ## نصب
 
 ```bash
-npm install github:mamadjavadrasti/playhub-game-sdk#v0.5.0
+npm install @oyna360/game-sdk
+# یا
+pnpm add @oyna360/game-sdk
+```
+
+```json
+{
+  "dependencies": {
+    "@oyna360/game-sdk": "^0.5.2"
+  }
+}
+```
+
+### به‌روزرسانی
+
+```bash
+npm install @oyna360/game-sdk@latest
+# یا
+pnpm update @oyna360/game-sdk
 ```
 
 Import:
 
 ```ts
-import { PlatformSDK } from '@platform/game-sdk';
+import { PlatformSDK } from '@oyna360/game-sdk';
 // یا
-import { init, getUser, submitScore } from '@platform/game-sdk';
+import { init, getUser, submitScore } from '@oyna360/game-sdk';
 ```
 
 ---

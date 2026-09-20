@@ -21,6 +21,10 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 const DEV_AUTH_MESSAGE = 'oyna360:dev-auth';
 const DEV_CODE_QUERY = 'oyna_dev_code';
 let initPayload = null;
+/** Origin of the platform parent after the first trusted iframe message. */
+let trustedPlatformOrigin = null;
+/** API base including `/api` — set in Direct Development for score/wallet/etc. */
+let directPlatformUrl = null;
 const initWaiters = [];
 function isEmbeddedInPlatform() {
     try {
@@ -29,6 +33,11 @@ function isEmbeddedInPlatform() {
     catch {
         return true;
     }
+}
+function rememberDirectPlatformUrl(url) {
+    const trimmed = url.replace(/\/$/, '');
+    if (trimmed)
+        directPlatformUrl = trimmed;
 }
 function asInitPayload(message) {
     return {
@@ -50,6 +59,54 @@ function isCompleteInit(data) {
         !!m.game?.slug &&
         !!m.avatar?.presetKey);
 }
+function rememberTrustedOrigin(origin) {
+    if (!trustedPlatformOrigin && origin && origin !== 'null') {
+        trustedPlatformOrigin = origin;
+    }
+}
+/**
+ * Target origin for parent.postMessage — never stay on * after we know the platform.
+ */
+function getParentMessageTarget() {
+    if (trustedPlatformOrigin)
+        return trustedPlatformOrigin;
+    if (typeof window !== 'undefined') {
+        const raw = window.__OYNA360_DEV__?.platformWebUrl;
+        if (raw) {
+            try {
+                return new URL(raw).origin;
+            }
+            catch {
+                /* ignore */
+            }
+        }
+        try {
+            if (typeof document !== 'undefined' && document.referrer) {
+                return new URL(document.referrer).origin;
+            }
+        }
+        catch {
+            /* ignore */
+        }
+    }
+    return '*';
+}
+/**
+ * Only accept postMessage traffic from the real platform parent.
+ * Self-published MessageEvents (publishPlatformInit) have null `source` and must be ignored
+ * here so settleInit → publish → onMessage cannot recurse.
+ */
+function isTrustedPlatformMessage(event) {
+    if (typeof window === 'undefined')
+        return false;
+    if (!isEmbeddedInPlatform())
+        return false;
+    if (event.source !== window.parent)
+        return false;
+    if (trustedPlatformOrigin && event.origin !== trustedPlatformOrigin)
+        return false;
+    return true;
+}
 /** Publish standard platform:init for lobby-sdk / game listeners (same-window). */
 function publishPlatformInit(payload) {
     if (typeof window === 'undefined')
@@ -60,12 +117,16 @@ function publishPlatformInit(payload) {
         ...payload,
     };
     window.__OYNA360_PLATFORM_INIT__ = message;
+    window.__OYNA360_PLATFORM_INIT_OK__ = true;
     window.dispatchEvent(new MessageEvent('message', {
         data: message,
         origin: window.location.origin,
     }));
 }
 function settleInit(payload) {
+    // Idempotent: ignore re-entry from self-publish or duplicate parent init.
+    if (initPayload)
+        return;
     initPayload = payload;
     publishPlatformInit(payload);
     for (const waiter of initWaiters.splice(0)) {
@@ -74,6 +135,10 @@ function settleInit(payload) {
     }
 }
 function onMessage(event) {
+    if (initPayload)
+        return;
+    if (!isTrustedPlatformMessage(event))
+        return;
     const data = event.data;
     if (!isCompleteInit(data)) {
         // Production parent may send init; accept even if avatar missing for backward compat
@@ -89,12 +154,14 @@ function onMessage(event) {
             presetKind: 'procedural',
             customConfig: {},
         };
+        rememberTrustedOrigin(event.origin);
         settleInit(asInitPayload({
             ...message,
             avatar,
         }));
         return;
     }
+    rememberTrustedOrigin(event.origin);
     settleInit(asInitPayload(data));
 }
 function signalReady() {
@@ -102,7 +169,7 @@ function signalReady() {
         return;
     if (!isEmbeddedInPlatform())
         return;
-    window.parent.postMessage({ type: 'platform:ready' }, '*');
+    window.parent.postMessage({ type: 'platform:ready' }, getParentMessageTarget());
 }
 if (typeof window !== 'undefined') {
     window.addEventListener('message', onMessage);
@@ -111,7 +178,7 @@ if (typeof window !== 'undefined') {
 function postToPlatform(outboundType, payload, resultType, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
         if (!isEmbeddedInPlatform()) {
-            reject(new Error(`${outboundType} requires the platform iframe parent in this SDK version (Direct Mode Phase B not enabled yet)`));
+            reject(new Error(`${outboundType} requires the platform iframe parent`));
             return;
         }
         const requestId = typeof crypto !== 'undefined' && crypto.randomUUID
@@ -122,6 +189,8 @@ function postToPlatform(outboundType, payload, resultType, timeoutMs = DEFAULT_R
             reject(new Error('Platform SDK request timeout'));
         }, timeoutMs);
         function onResult(event) {
+            if (!isTrustedPlatformMessage(event))
+                return;
             const data = event.data;
             if (!data || typeof data !== 'object' || data.type !== resultType)
                 return;
@@ -129,6 +198,7 @@ function postToPlatform(outboundType, payload, resultType, timeoutMs = DEFAULT_R
                 return;
             clearTimeout(timer);
             window.removeEventListener('message', onResult);
+            rememberTrustedOrigin(event.origin);
             const error = data.error;
             if (error) {
                 reject(new Error(error));
@@ -137,8 +207,64 @@ function postToPlatform(outboundType, payload, resultType, timeoutMs = DEFAULT_R
             resolve(data.result);
         }
         window.addEventListener('message', onResult);
-        window.parent.postMessage({ type: outboundType, requestId, ...payload }, '*');
+        window.parent.postMessage({ type: outboundType, requestId, ...payload }, getParentMessageTarget());
     });
+}
+function nestErrorMessage(data, fallback) {
+    if (!data || typeof data !== 'object')
+        return fallback;
+    const message = data.message;
+    if (typeof message === 'string')
+        return message;
+    if (Array.isArray(message))
+        return message.join(', ');
+    return fallback;
+}
+/** Direct Development / top-level: call platform REST with the game session token. */
+async function apiRequest(path, options = {}) {
+    const base = directPlatformUrl;
+    if (!base) {
+        throw new Error('Direct API calls require platformUrl. Pass PlatformSDK.init({ platformUrl, gameSlug }) or window.__OYNA360_DEV__.');
+    }
+    const headers = {
+        Accept: 'application/json',
+    };
+    if (options.body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+    }
+    if (options.auth !== false) {
+        const token = initPayload?.session?.token;
+        if (!token) {
+            throw new Error('PlatformSDK.init() must complete before calling this API');
+        }
+        headers.Authorization = `Bearer ${token}`;
+    }
+    const response = await fetch(`${base}${path}`, {
+        method: options.method ?? (options.body !== undefined ? 'POST' : 'GET'),
+        headers,
+        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(nestErrorMessage(data, `Platform API error (${response.status})`));
+    }
+    return data;
+}
+function callPlatformFeature(outboundType, payload, resultType, directCall) {
+    if (isEmbeddedInPlatform()) {
+        return postToPlatform(outboundType, payload, resultType);
+    }
+    return directCall();
+}
+async function markDirectSessionReady() {
+    if (!directPlatformUrl || !initPayload?.session?.token)
+        return;
+    try {
+        await apiRequest('/sessions/ready', { method: 'POST' });
+    }
+    catch {
+        // Non-fatal: presence analytics only
+    }
 }
 function resolveDevConfig(options) {
     const fromWindow = typeof window !== 'undefined' ? window.__OYNA360_DEV__ : undefined;
@@ -208,6 +334,7 @@ async function runDirectDevelopmentBootstrap(options) {
         throw new Error('Direct Development Mode requires platformUrl + gameSlug (and platformWebUrl). ' +
             'Set PlatformSDK.init({ platformUrl, gameSlug }) or window.__OYNA360_DEV__.');
     }
+    rememberDirectPlatformUrl(platformUrl);
     const gameOrigin = window.location.origin;
     const existingCode = readCodeFromUrl();
     if (existingCode) {
@@ -299,8 +426,22 @@ async function init(options) {
     if (typeof window === 'undefined') {
         throw new Error('PlatformSDK.init() requires a browser environment');
     }
-    // Already delivered (e.g. early parent message or prior publish)
-    if (window.__OYNA360_PLATFORM_INIT__?.session?.token) {
+    // Pin API base early so Direct Dev feature calls work after init.
+    const earlyDev = resolveDevConfig(options);
+    if (earlyDev.platformUrl) {
+        rememberDirectPlatformUrl(earlyDev.platformUrl);
+    }
+    // Optional: pin expected parent origin early (iframe + Direct Dev).
+    if (options?.platformWebUrl || earlyDev.platformWebUrl) {
+        try {
+            rememberTrustedOrigin(new URL(options?.platformWebUrl || earlyDev.platformWebUrl).origin);
+        }
+        catch {
+            // ignore invalid URL; message source check still applies in iframe mode
+        }
+    }
+    // Already delivered by a trusted writer (this SDK or lobby-sdk after origin check)
+    if (window.__OYNA360_PLATFORM_INIT_OK__ && window.__OYNA360_PLATFORM_INIT__?.session?.token) {
         const cached = asInitPayload(window.__OYNA360_PLATFORM_INIT__);
         if (!cached.avatar) {
             cached.avatar = {
@@ -316,7 +457,8 @@ async function init(options) {
     if (isEmbeddedInPlatform()) {
         return waitForIframeInit(options?.timeout ?? DEFAULT_INIT_TIMEOUT_MS);
     }
-    // Top-level: brief probe in case a synthetic/parent message races in, then bootstrap.
+    // Top-level: brief probe in case a parent/harness message races in, then bootstrap.
+    // Synthetic self-publish is ignored (source !== parent); probe usually times out.
     try {
         return await waitForIframeInit(IFRAME_PROBE_MS);
     }
@@ -325,6 +467,7 @@ async function init(options) {
     }
     const payload = await runDirectDevelopmentBootstrap(options);
     settleInit(payload);
+    void markDirectSessionReady();
     return payload;
 }
 function getUser() {
@@ -345,12 +488,17 @@ async function submitScore(score) {
     if (score < 0 || !Number.isFinite(score)) {
         throw new Error('Score must be a non-negative number');
     }
-    return postToPlatform('platform:score:submit', { sessionToken: payload.session.token, score: Math.floor(score) }, 'platform:score:result');
+    const floorScore = Math.floor(score);
+    return callPlatformFeature('platform:score:submit', { sessionToken: payload.session.token, score: floorScore }, 'platform:score:result', () => apiRequest(`/games/${payload.game.slug}/scores`, {
+        method: 'POST',
+        body: { score: floorScore },
+    }));
 }
-/** Fetch game leaderboard via platform bridge. */
+/** Fetch game leaderboard via platform bridge (iframe) or REST (Direct Dev). */
 async function getLeaderboard(limit = 20) {
-    await init();
-    return postToPlatform('platform:leaderboard:get', { limit }, 'platform:leaderboard:result');
+    const payload = await init();
+    const safeLimit = Math.min(Math.max(Math.floor(limit) || 20, 1), 100);
+    return callPlatformFeature('platform:leaderboard:get', { limit: safeLimit }, 'platform:leaderboard:result', () => apiRequest(`/games/${payload.game.slug}/leaderboard?limit=${safeLimit}`, { auth: false }));
 }
 /** Unlock an achievement for the current player. Idempotent. */
 async function unlockAchievement(key) {
@@ -358,17 +506,21 @@ async function unlockAchievement(key) {
     if (!key.trim()) {
         throw new Error('Achievement key is required');
     }
-    return postToPlatform('platform:achievement:unlock', { sessionToken: payload.session.token, key: key.trim() }, 'platform:achievement:unlock:result');
+    const achievementKey = key.trim();
+    return callPlatformFeature('platform:achievement:unlock', { sessionToken: payload.session.token, key: achievementKey }, 'platform:achievement:unlock:result', () => apiRequest(`/games/${payload.game.slug}/achievements/unlock`, {
+        method: 'POST',
+        body: { key: achievementKey },
+    }));
 }
 /** List achievements with unlock status for the current player. */
 async function getAchievements() {
-    await init();
-    return postToPlatform('platform:achievements:get', {}, 'platform:achievements:result');
+    const payload = await init();
+    return callPlatformFeature('platform:achievements:get', {}, 'platform:achievements:result', () => apiRequest(`/games/${payload.game.slug}/achievements/me`));
 }
 /** Platform gem balance + coins-per-gem rate for this game. */
 async function getWallet() {
-    await init();
-    return postToPlatform('platform:wallet:get', {}, 'platform:wallet:result');
+    const payload = await init();
+    return callPlatformFeature('platform:wallet:get', {}, 'platform:wallet:result', () => apiRequest(`/games/${payload.game.slug}/wallet`));
 }
 /**
  * Convert platform gems into in-game coins.
@@ -379,17 +531,34 @@ async function convertGems(gems) {
     if (!Number.isInteger(gems) || gems < 1) {
         throw new Error('gems must be a positive integer');
     }
-    return postToPlatform('platform:gems:exchange', { sessionToken: payload.session.token, gems }, 'platform:gems:exchange:result');
+    return callPlatformFeature('platform:gems:exchange', { sessionToken: payload.session.token, gems }, 'platform:gems:exchange:result', () => apiRequest(`/games/${payload.game.slug}/wallet/exchange`, {
+        method: 'POST',
+        body: { gems },
+    }));
 }
 async function endSession() {
     const token = initPayload?.session.token;
     if (!token || typeof window === 'undefined')
         return;
     if (isEmbeddedInPlatform()) {
+        const target = getParentMessageTarget();
         window.parent.postMessage({
             type: 'platform:session:end',
             sessionToken: token,
-        }, '*');
+        }, target);
+        return;
+    }
+    if (directPlatformUrl) {
+        try {
+            await apiRequest('/sessions/end', {
+                method: 'POST',
+                body: { token },
+                auth: false,
+            });
+        }
+        catch {
+            // Session may already be closed
+        }
     }
 }
 exports.PlatformSDK = {

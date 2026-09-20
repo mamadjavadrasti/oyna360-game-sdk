@@ -4,6 +4,8 @@ export type { SdkInitPayload, SdkLobbyAvatar, SdkSession, SdkUser, SdkGameInfo, 
 declare global {
     interface Window {
         __OYNA360_PLATFORM_INIT__?: PlatformInitMessage;
+        /** True only when init was written by a trusted path (parent message or this SDK). */
+        __OYNA360_PLATFORM_INIT_OK__?: boolean;
         __OYNA360_DEV__?: {
             platformUrl?: string;
             platformWebUrl?: string;
@@ -23,7 +25,7 @@ export declare function getInitPayload(): SdkInitPayload | null;
 export declare function isReady(): boolean;
 /** Submit score (keeps best score per player). Requires active session. */
 export declare function submitScore(score: number): Promise<SubmitScoreResponse>;
-/** Fetch game leaderboard via platform bridge. */
+/** Fetch game leaderboard via platform bridge (iframe) or REST (Direct Dev). */
 export declare function getLeaderboard(limit?: number): Promise<LeaderboardResponse>;
 /** Unlock an achievement for the current player. Idempotent. */
 export declare function unlockAchievement(key: string): Promise<UnlockAchievementResponse>;

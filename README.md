@@ -9,7 +9,7 @@ SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 - در **Production** داخل iframe پلتفرم کار کند
 - در **Development** بدون iframe، مستقیم به سرور oyna360 وصل شود
 
-**نسخه:** `0.5.1` · بدون وابستگی runtime · TypeScript داخل پکیج
+**نسخه:** `0.5.2` · بدون وابستگی runtime · TypeScript داخل پکیج
 
 > این SDK مسئول لابی ۳D نیست. برای لابی از [`@oyna360/lobby-sdk`](https://www.npmjs.com/package/@oyna360/lobby-sdk) استفاده کنید. این دو پکیج را ادغام نکنید.
 
@@ -26,7 +26,7 @@ pnpm add @oyna360/game-sdk
 ```json
 {
   "dependencies": {
-    "@oyna360/game-sdk": "^0.5.1"
+    "@oyna360/game-sdk": "^0.5.2"
   }
 }
 ```
@@ -151,7 +151,7 @@ await PlatformSDK.init();
 
 Production از `postMessage` به parent استفاده می‌کند؛ Direct Dev همان endpointهای REST را با session token صدا می‌زند.
 
-`PlatformSDK.version` → `'0.5.1'`
+`PlatformSDK.version` → `'0.5.2'`
 
 ---
 

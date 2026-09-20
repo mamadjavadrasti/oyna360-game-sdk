@@ -11,7 +11,7 @@ pnpm add @oyna360/game-sdk
 ```json
 {
   "dependencies": {
-    "@oyna360/game-sdk": "^0.5.1"
+    "@oyna360/game-sdk": "^0.5.2"
   }
 }
 ```

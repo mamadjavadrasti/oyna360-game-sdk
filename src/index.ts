@@ -42,6 +42,8 @@ const DEV_CODE_QUERY = 'oyna_dev_code';
 declare global {
   interface Window {
     __OYNA360_PLATFORM_INIT__?: PlatformInitMessage;
+    /** True only when init was written by a trusted path (parent message or this SDK). */
+    __OYNA360_PLATFORM_INIT_OK__?: boolean;
     __OYNA360_DEV__?: {
       platformUrl?: string;
       platformWebUrl?: string;
@@ -104,6 +106,31 @@ function rememberTrustedOrigin(origin: string) {
 }
 
 /**
+ * Target origin for parent.postMessage — never stay on * after we know the platform.
+ */
+function getParentMessageTarget(): string {
+  if (trustedPlatformOrigin) return trustedPlatformOrigin;
+  if (typeof window !== 'undefined') {
+    const raw = window.__OYNA360_DEV__?.platformWebUrl;
+    if (raw) {
+      try {
+        return new URL(raw).origin;
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      if (typeof document !== 'undefined' && document.referrer) {
+        return new URL(document.referrer).origin;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return '*';
+}
+
+/**
  * Only accept postMessage traffic from the real platform parent.
  * Self-published MessageEvents (publishPlatformInit) have null `source` and must be ignored
  * here so settleInit → publish → onMessage cannot recurse.
@@ -125,6 +152,7 @@ function publishPlatformInit(payload: SdkInitPayload) {
     ...payload,
   };
   window.__OYNA360_PLATFORM_INIT__ = message;
+  window.__OYNA360_PLATFORM_INIT_OK__ = true;
   window.dispatchEvent(
     new MessageEvent('message', {
       data: message,
@@ -178,7 +206,7 @@ function onMessage(event: MessageEvent) {
 function signalReady() {
   if (typeof window === 'undefined') return;
   if (!isEmbeddedInPlatform()) return;
-  window.parent.postMessage({ type: 'platform:ready' }, '*');
+  window.parent.postMessage({ type: 'platform:ready' }, getParentMessageTarget());
 }
 
 if (typeof window !== 'undefined') {
@@ -228,7 +256,7 @@ function postToPlatform<T>(
     }
 
     window.addEventListener('message', onResult);
-    window.parent.postMessage({ type: outboundType, requestId, ...payload }, '*');
+    window.parent.postMessage({ type: outboundType, requestId, ...payload }, getParentMessageTarget());
   });
 }
 
@@ -506,8 +534,8 @@ export async function init(options?: PlatformSdkInitOptions): Promise<SdkInitPay
     }
   }
 
-  // Already delivered (e.g. early parent message or prior publish)
-  if (window.__OYNA360_PLATFORM_INIT__?.session?.token) {
+  // Already delivered by a trusted writer (this SDK or lobby-sdk after origin check)
+  if (window.__OYNA360_PLATFORM_INIT_OK__ && window.__OYNA360_PLATFORM_INIT__?.session?.token) {
     const cached = asInitPayload(window.__OYNA360_PLATFORM_INIT__);
     if (!cached.avatar) {
       cached.avatar = {
@@ -660,12 +688,13 @@ export async function endSession(): Promise<void> {
   if (!token || typeof window === 'undefined') return;
 
   if (isEmbeddedInPlatform()) {
+    const target = getParentMessageTarget();
     window.parent.postMessage(
       {
         type: 'platform:session:end',
         sessionToken: token,
       },
-      '*',
+      target,
     );
     return;
   }

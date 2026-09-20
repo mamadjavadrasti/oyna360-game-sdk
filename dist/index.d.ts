@@ -4,6 +4,8 @@ export type { SdkInitPayload, SdkLobbyAvatar, SdkSession, SdkUser, SdkGameInfo, 
 declare global {
     interface Window {
         __OYNA360_PLATFORM_INIT__?: PlatformInitMessage;
+        /** True only when init was written by a trusted path (parent message or this SDK). */
+        __OYNA360_PLATFORM_INIT_OK__?: boolean;
         __OYNA360_DEV__?: {
             platformUrl?: string;
             platformWebUrl?: string;

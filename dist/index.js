@@ -65,6 +65,33 @@ function rememberTrustedOrigin(origin) {
     }
 }
 /**
+ * Target origin for parent.postMessage — never stay on * after we know the platform.
+ */
+function getParentMessageTarget() {
+    if (trustedPlatformOrigin)
+        return trustedPlatformOrigin;
+    if (typeof window !== 'undefined') {
+        const raw = window.__OYNA360_DEV__?.platformWebUrl;
+        if (raw) {
+            try {
+                return new URL(raw).origin;
+            }
+            catch {
+                /* ignore */
+            }
+        }
+        try {
+            if (typeof document !== 'undefined' && document.referrer) {
+                return new URL(document.referrer).origin;
+            }
+        }
+        catch {
+            /* ignore */
+        }
+    }
+    return '*';
+}
+/**
  * Only accept postMessage traffic from the real platform parent.
  * Self-published MessageEvents (publishPlatformInit) have null `source` and must be ignored
  * here so settleInit → publish → onMessage cannot recurse.
@@ -90,6 +117,7 @@ function publishPlatformInit(payload) {
         ...payload,
     };
     window.__OYNA360_PLATFORM_INIT__ = message;
+    window.__OYNA360_PLATFORM_INIT_OK__ = true;
     window.dispatchEvent(new MessageEvent('message', {
         data: message,
         origin: window.location.origin,
@@ -141,7 +169,7 @@ function signalReady() {
         return;
     if (!isEmbeddedInPlatform())
         return;
-    window.parent.postMessage({ type: 'platform:ready' }, '*');
+    window.parent.postMessage({ type: 'platform:ready' }, getParentMessageTarget());
 }
 if (typeof window !== 'undefined') {
     window.addEventListener('message', onMessage);
@@ -179,7 +207,7 @@ function postToPlatform(outboundType, payload, resultType, timeoutMs = DEFAULT_R
             resolve(data.result);
         }
         window.addEventListener('message', onResult);
-        window.parent.postMessage({ type: outboundType, requestId, ...payload }, '*');
+        window.parent.postMessage({ type: outboundType, requestId, ...payload }, getParentMessageTarget());
     });
 }
 function nestErrorMessage(data, fallback) {
@@ -412,8 +440,8 @@ async function init(options) {
             // ignore invalid URL; message source check still applies in iframe mode
         }
     }
-    // Already delivered (e.g. early parent message or prior publish)
-    if (window.__OYNA360_PLATFORM_INIT__?.session?.token) {
+    // Already delivered by a trusted writer (this SDK or lobby-sdk after origin check)
+    if (window.__OYNA360_PLATFORM_INIT_OK__ && window.__OYNA360_PLATFORM_INIT__?.session?.token) {
         const cached = asInitPayload(window.__OYNA360_PLATFORM_INIT__);
         if (!cached.avatar) {
             cached.avatar = {
@@ -513,10 +541,11 @@ async function endSession() {
     if (!token || typeof window === 'undefined')
         return;
     if (isEmbeddedInPlatform()) {
+        const target = getParentMessageTarget();
         window.parent.postMessage({
             type: 'platform:session:end',
             sessionToken: token,
-        }, '*');
+        }, target);
         return;
     }
     if (directPlatformUrl) {

@@ -10,13 +10,16 @@ declare global {
             platformUrl?: string;
             platformWebUrl?: string;
             gameSlug?: string;
+            clientId?: string;
+            credential?: string;
         };
     }
 }
 /**
  * Wait for platform init payload.
  * - Production iframe: receives `platform:init` from parent.
- * - Direct Development: Oyna360 authorize → one-time code → standard SdkInitPayload.
+ * - Developer Environment: credential → POST /dev/gateway/session (no popup).
+ * - Legacy Direct Development: authorize popup → one-time code → SdkInitPayload.
  */
 export declare function init(options?: PlatformSdkInitOptions): Promise<SdkInitPayload>;
 export declare function getUser(): SdkUser | null;

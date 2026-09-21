@@ -1,7 +1,7 @@
 {
   "name": "@oyna360/game-sdk",
-  "version": "0.5.3",
-  "description": "oyna360 Game SDK — postMessage bridge + Direct Development Mode (init, scores, achievements, gem→coin).",
+  "version": "0.6.0",
+  "description": "oyna360 Game SDK — postMessage bridge, Developer Environment credentials, and Direct Development Mode.",
   "license": "MIT",
   "author": "oyna360",
   "keywords": [

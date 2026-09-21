@@ -1,5 +1,5 @@
 /** Public SDK contract — keep in sync with platform `@platform/types` when protocol changes. */
-export declare const SDK_VERSION = "0.5.2";
+export declare const SDK_VERSION = "0.6.0";
 export type AvatarPresetKind = 'procedural' | 'glb';
 export interface SdkLobbyAvatar {
     presetId: string;
@@ -54,8 +54,19 @@ export interface PlatformSdkInitOptions {
      * Defaults to origin of `platformUrl` without `/api`.
      */
     platformWebUrl?: string;
-    /** Published game slug. Required for Direct Development Mode. */
+    /**
+     * Published game slug — legacy Direct Dev (authorize popup).
+     * Prefer `dev: { clientId, credential }` for Developer Environment.
+     */
     gameSlug?: string;
+    /**
+     * Developer Environment credentials from /developer portal.
+     * Creates a temporary session via POST /dev/gateway/session — no popup.
+     */
+    dev?: {
+        clientId: string;
+        credential: string;
+    };
 }
 export interface LeaderboardEntry {
     rank: number;

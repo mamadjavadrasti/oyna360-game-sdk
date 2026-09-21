@@ -48,6 +48,8 @@ declare global {
       platformUrl?: string;
       platformWebUrl?: string;
       gameSlug?: string;
+      clientId?: string;
+      credential?: string;
     };
   }
 }
@@ -336,6 +338,8 @@ function resolveDevConfig(options?: PlatformSdkInitOptions) {
   const fromWindow = typeof window !== 'undefined' ? window.__OYNA360_DEV__ : undefined;
   const platformUrl = (options?.platformUrl || fromWindow?.platformUrl || '').replace(/\/$/, '');
   const gameSlug = (options?.gameSlug || fromWindow?.gameSlug || '').trim();
+  const clientId = (options?.dev?.clientId || fromWindow?.clientId || '').trim();
+  const credential = (options?.dev?.credential || fromWindow?.credential || '').trim();
   let platformWebUrl = (options?.platformWebUrl || fromWindow?.platformWebUrl || '').replace(/\/$/, '');
   if (!platformWebUrl && platformUrl) {
     try {
@@ -346,7 +350,43 @@ function resolveDevConfig(options?: PlatformSdkInitOptions) {
       platformWebUrl = '';
     }
   }
-  return { platformUrl, platformWebUrl, gameSlug };
+  return { platformUrl, platformWebUrl, gameSlug, clientId, credential };
+}
+
+async function runCredentialGatewayBootstrap(
+  options?: PlatformSdkInitOptions,
+): Promise<SdkInitPayload> {
+  const { platformUrl, clientId, credential } = resolveDevConfig(options);
+  if (!platformUrl || !clientId || !credential) {
+    throw new Error(
+      'Developer Environment requires platformUrl + dev.clientId + dev.credential. ' +
+        'Create them at /developer and pass PlatformSDK.init({ platformUrl, dev: { clientId, credential } }).',
+    );
+  }
+
+  rememberDirectPlatformUrl(platformUrl);
+  const origin = window.location.origin;
+
+  const response = await fetch(`${platformUrl}/dev/gateway/session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clientId, credential, origin }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg =
+      typeof data.message === 'string'
+        ? data.message
+        : Array.isArray(data.message)
+          ? data.message.join(', ')
+          : 'Dev gateway session failed';
+    throw new Error(msg);
+  }
+  const payload = data as SdkInitPayload;
+  if (!payload?.session?.token || !payload.avatar || !payload.lobby?.wsUrl) {
+    throw new Error('Invalid SdkInitPayload from dev gateway');
+  }
+  return payload;
 }
 
 function readCodeFromUrl(): string | null {
@@ -508,7 +548,8 @@ function waitForIframeInit(timeoutMs: number): Promise<SdkInitPayload> {
 /**
  * Wait for platform init payload.
  * - Production iframe: receives `platform:init` from parent.
- * - Direct Development: Oyna360 authorize → one-time code → standard SdkInitPayload.
+ * - Developer Environment: credential → POST /dev/gateway/session (no popup).
+ * - Legacy Direct Development: authorize popup → one-time code → SdkInitPayload.
  */
 export async function init(options?: PlatformSdkInitOptions): Promise<SdkInitPayload> {
   if (initPayload) {
@@ -559,6 +600,14 @@ export async function init(options?: PlatformSdkInitOptions): Promise<SdkInitPay
     return await waitForIframeInit(IFRAME_PROBE_MS);
   } catch {
     // expected when not in iframe
+  }
+
+  // Prefer Developer Environment credentials (no authorize popup).
+  if (earlyDev.clientId && earlyDev.credential) {
+    const payload = await runCredentialGatewayBootstrap(options);
+    settleInit(payload);
+    void markDirectSessionReady();
+    return payload;
   }
 
   const payload = await runDirectDevelopmentBootstrap(options);

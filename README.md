@@ -9,7 +9,7 @@ SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 - در **Production** داخل iframe پلتفرم کار کند
 - در **Development** بدون iframe، مستقیم به سرور oyna360 وصل شود
 
-**نسخه:** `0.5.2` · بدون وابستگی runtime · TypeScript داخل پکیج
+**نسخه:** `0.6.0` · بدون وابستگی runtime · TypeScript داخل پکیج
 
 > این SDK مسئول لابی ۳D نیست. برای لابی از [`@oyna360/lobby-sdk`](https://www.npmjs.com/package/@oyna360/lobby-sdk) استفاده کنید. این دو پکیج را ادغام نکنید.
 
@@ -26,7 +26,7 @@ pnpm add @oyna360/game-sdk
 ```json
 {
   "dependencies": {
-    "@oyna360/game-sdk": "^0.5.2"
+    "@oyna360/game-sdk": "^0.6.0"
   }
 }
 ```
@@ -48,18 +48,17 @@ pnpm update @oyna360/game-sdk
 | حالت | چطور بازی باز می‌شود | `init()` از کجا Context می‌گیرد |
 |------|----------------------|----------------------------------|
 | **Production** | بازیکن از `https://oyna360.ir/play/{slug}` وارد می‌شود؛ بازی داخل iframe است | `postMessage` → `platform:init` از parent |
-| **Direct Development** | شما `npm run dev` می‌زنید و بازی را مستقیم روی origin خودتان باز می‌کنید | Authorize با اکانت واقعی → سشن موقت → همان `SdkInitPayload` |
-
-در هر دو حالت API بازی یکسان است:
+| **Developer Environment** | `npm run dev` روی origin شما | Dev Credential → `POST /dev/gateway/session` (بدون popup) |
+| **Direct Development (legacy)** | `npm run dev` + بازی منتشرشده | Authorize popup با `gameSlug` |
 
 ```ts
 import { PlatformSDK } from '@oyna360/game-sdk';
 
 const { user, game, session, avatar, lobby } = await PlatformSDK.init({
-  // فقط برای Direct Development لازم است:
-  // platformUrl: 'https://oyna360.ir/api',
-  // platformWebUrl: 'https://oyna360.ir',
-  // gameSlug: 'my-game',
+  platformUrl: 'https://oyna360.ir/api',
+  platformWebUrl: 'https://oyna360.ir',
+  // توصیه برای توسعه:
+  // dev: { clientId: '...', credential: '...' },
 });
 ```
 
@@ -88,9 +87,30 @@ boot().catch(console.error);
 
 ---
 
-## شروع سریع — Direct Development
+## شروع سریع — Developer Environment (توصیه‌شده)
 
-بدون کلون کردن پلتفرم:
+1. در oyna360 وارد شوید و به `/developer` بروید.
+2. Dev Project بسازید و Origin لوکال (مثلاً `http://localhost:5173`) را اضافه کنید.
+3. Credential صادر کنید و در `.env` بازی بگذارید.
+
+```ts
+await PlatformSDK.init({
+  platformUrl: 'https://oyna360.ir/api',
+  platformWebUrl: 'https://oyna360.ir',
+  dev: {
+    clientId: '...',
+    credential: '...',
+  },
+});
+```
+
+بدون ساختن بازی در Catalog و بدون popup هر بار. جزئیات: [docs/10-developer-environment.md](./docs/10-developer-environment.md)
+
+---
+
+## شروع سریع — Direct Development (legacy / slug)
+
+بدون کلون کردن پلتفرم، ولی نیاز به بازی **منتشرشده** و authorize هر بار:
 
 ```ts
 await PlatformSDK.init({

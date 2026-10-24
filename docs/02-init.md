@@ -108,6 +108,8 @@ PlatformSDK.getInitPayload();    // SdkInitPayload | null  (کامل)
 
 ## تحویل به lobby-sdk
 
+`PlatformLobby` را از `@oyna360/lobby-babylon` import کنید. کل payload را منتقل کنید؛ لود GLB، Draco، لباس و remoteها خودکار است. [راهنمای کامل آواتار](https://github.com/mamadjavadrasti/oyna360-lobby-babylon/blob/master/docs/08-avatars.md).
+
 روش توصیه‌شده:
 
 ```ts

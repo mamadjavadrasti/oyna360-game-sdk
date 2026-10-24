@@ -88,7 +88,7 @@ DEV_GAME_ORIGINS=http://localhost:5180,http://127.0.0.1:5173,http://192.168.1.20
 
 ```ts
 import { PlatformSDK } from '@oyna360/game-sdk';
-import { PlatformLobby } from '@oyna360/lobby-sdk';
+import { PlatformLobby } from '@oyna360/lobby-babylon';
 
 const init = await PlatformSDK.init({
   platformUrl: 'https://oyna360.ir/api',

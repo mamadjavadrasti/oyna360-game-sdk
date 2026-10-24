@@ -11,7 +11,7 @@ SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 
 **نسخه:** `0.6.0` · بدون وابستگی runtime · TypeScript داخل پکیج
 
-> این SDK مسئول لابی ۳D نیست. برای لابی از [`@oyna360/lobby-sdk`](https://www.npmjs.com/package/@oyna360/lobby-sdk) استفاده کنید. این دو پکیج را ادغام نکنید.
+> برای لابی ۳D و لود آواتار از [`@oyna360/lobby-babylon`](https://www.npmjs.com/package/@oyna360/lobby-babylon) استفاده کنید؛ `@oyna360/lobby-sdk` فقط Core شبکه و state است. [مرجع استاندارد آواتار و راهنمای AI](https://github.com/mamadjavadrasti/oyna360-lobby-babylon/blob/master/docs/08-avatars.md).
 
 ---
 
@@ -181,7 +181,7 @@ Production از `postMessage` به parent استفاده می‌کند؛ Direct 
 
 ```ts
 import { PlatformSDK } from '@oyna360/game-sdk';
-import { PlatformLobby } from '@oyna360/lobby-sdk';
+import { PlatformLobby } from '@oyna360/lobby-babylon';
 
 const init = await PlatformSDK.init({ /* … */ });
 const lobby = await PlatformLobby.create({
@@ -193,6 +193,8 @@ const lobby = await PlatformLobby.create({
 ```
 
 `lobby.wsUrl` را هاردکد نکنید.
+
+کل `init` را منتقل کنید تا مدل، لباس و اکسسوری کاربر حفظ شود. `PlatformLobby.create` لود GLB، Draco و آواتار دیگران را خودکار انجام می‌دهد. برای رندر در صحنهٔ اختصاصی و محدودیت‌های شخصی‌سازی، [راهنمای آواتار](https://github.com/mamadjavadrasti/oyna360-lobby-babylon/blob/master/docs/08-avatars.md) را بخوانید.
 
 ---
 

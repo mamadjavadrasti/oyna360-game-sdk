@@ -221,6 +221,7 @@ function postToPlatform<T>(
   payload: Record<string, unknown>,
   resultType: string,
   timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+  stableRequestId?: string,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     if (!isEmbeddedInPlatform()) {
@@ -228,10 +229,10 @@ function postToPlatform<T>(
       return;
     }
 
-    const requestId =
+    const requestId = stableRequestId ?? (
       typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`;
+        : `${Date.now()}-${Math.random()}`);
 
     const timer = setTimeout(() => {
       window.removeEventListener('message', onResult);
@@ -318,9 +319,10 @@ function callPlatformFeature<T>(
   payload: Record<string, unknown>,
   resultType: string,
   directCall: () => Promise<T>,
+  stableRequestId?: string,
 ): Promise<T> {
   if (isEmbeddedInPlatform()) {
-    return postToPlatform<T>(outboundType, payload, resultType);
+    return postToPlatform<T>(outboundType, payload, resultType, DEFAULT_REQUEST_TIMEOUT_MS, stableRequestId);
   }
   return directCall();
 }
@@ -714,10 +716,13 @@ export async function getWallet(): Promise<WalletBalanceResponse> {
  * Convert platform gems into in-game coins.
  * Platform deducts gems; the game must credit `coinsReceived` to its own economy.
  */
-export async function convertGems(gems: number): Promise<ConvertGemsResponse> {
+export async function convertGems(gems: number, requestId?: string): Promise<ConvertGemsResponse> {
   const payload = await init();
   if (!Number.isInteger(gems) || gems < 1) {
     throw new Error('gems must be a positive integer');
+  }
+  if (requestId !== undefined && !/^[A-Za-z0-9_-]{8,128}$/.test(requestId)) {
+    throw new Error('requestId must contain 8-128 ASCII letters, digits, underscores or hyphens');
   }
 
   return callPlatformFeature<ConvertGemsResponse>(
@@ -727,8 +732,9 @@ export async function convertGems(gems: number): Promise<ConvertGemsResponse> {
     () =>
       apiRequest<ConvertGemsResponse>(`/games/${payload.game.slug}/wallet/exchange`, {
         method: 'POST',
-        body: { gems },
+        body: { gems, requestId },
       }),
+    requestId,
   );
 }
 

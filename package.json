@@ -1,6 +1,6 @@
 {
   "name": "@oyna360/game-sdk",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "oyna360 Game SDK — postMessage bridge, Developer Environment credentials, and Direct Development Mode.",
   "license": "MIT",
   "author": "oyna360",

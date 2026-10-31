@@ -1,3 +1,22 @@
+import type {
+  ProductsResponse,
+  PurchaseReceipt,
+  PurchaseStatus,
+  PurchaseReceipts,
+  InventoryResponse,
+  ConsumeItemResponse,
+  ExchangeStatus,
+} from "./types";
+export type {
+  GameProduct,
+  ProductsResponse,
+  PurchaseReceipt,
+  PurchaseStatus,
+  PurchaseReceipts,
+  InventoryResponse,
+  ConsumeItemResponse,
+  ExchangeStatus,
+} from "./types";
 import {
   SDK_VERSION,
   type PlatformInitMessage,
@@ -12,7 +31,7 @@ import {
   type UnlockAchievementResponse,
   type WalletBalanceResponse,
   type ConvertGemsResponse,
-} from './types';
+} from "./types";
 
 export { SDK_VERSION };
 export type {
@@ -31,13 +50,13 @@ export type {
   UnlockAchievementResponse,
   WalletBalanceResponse,
   ConvertGemsResponse,
-} from './types';
+} from "./types";
 
 const DEFAULT_INIT_TIMEOUT_MS = 10_000;
 const IFRAME_PROBE_MS = 400;
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
-const DEV_AUTH_MESSAGE = 'oyna360:dev-auth';
-const DEV_CODE_QUERY = 'oyna_dev_code';
+const DEV_AUTH_MESSAGE = "oyna360:dev-auth";
+const DEV_CODE_QUERY = "oyna_dev_code";
 
 declare global {
   interface Window {
@@ -67,18 +86,20 @@ const initWaiters: Array<{
 
 function isEmbeddedInPlatform(): boolean {
   try {
-    return typeof window !== 'undefined' && window.parent !== window;
+    return typeof window !== "undefined" && window.parent !== window;
   } catch {
     return true;
   }
 }
 
 function rememberDirectPlatformUrl(url: string) {
-  const trimmed = url.replace(/\/$/, '');
+  const trimmed = url.replace(/\/$/, "");
   if (trimmed) directPlatformUrl = trimmed;
 }
 
-function asInitPayload(message: PlatformInitMessage | SdkInitPayload): SdkInitPayload {
+function asInitPayload(
+  message: PlatformInitMessage | SdkInitPayload,
+): SdkInitPayload {
   return {
     session: message.session,
     user: message.user,
@@ -90,10 +111,10 @@ function asInitPayload(message: PlatformInitMessage | SdkInitPayload): SdkInitPa
 }
 
 function isCompleteInit(data: unknown): data is PlatformInitMessage {
-  if (!data || typeof data !== 'object') return false;
+  if (!data || typeof data !== "object") return false;
   const m = data as Partial<PlatformInitMessage>;
   return (
-    m.type === 'platform:init' &&
+    m.type === "platform:init" &&
     !!m.session?.token &&
     !!m.user?.id &&
     !!m.game?.slug &&
@@ -102,7 +123,7 @@ function isCompleteInit(data: unknown): data is PlatformInitMessage {
 }
 
 function rememberTrustedOrigin(origin: string) {
-  if (!trustedPlatformOrigin && origin && origin !== 'null') {
+  if (!trustedPlatformOrigin && origin && origin !== "null") {
     trustedPlatformOrigin = origin;
   }
 }
@@ -112,7 +133,7 @@ function rememberTrustedOrigin(origin: string) {
  */
 function getParentMessageTarget(): string {
   if (trustedPlatformOrigin) return trustedPlatformOrigin;
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     const raw = window.__OYNA360_DEV__?.platformWebUrl;
     if (raw) {
       try {
@@ -122,14 +143,14 @@ function getParentMessageTarget(): string {
       }
     }
     try {
-      if (typeof document !== 'undefined' && document.referrer) {
+      if (typeof document !== "undefined" && document.referrer) {
         return new URL(document.referrer).origin;
       }
     } catch {
       /* ignore */
     }
   }
-  return '*';
+  return "*";
 }
 
 /**
@@ -138,25 +159,26 @@ function getParentMessageTarget(): string {
  * here so settleInit → publish → onMessage cannot recurse.
  */
 function isTrustedPlatformMessage(event: MessageEvent): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   if (!isEmbeddedInPlatform()) return false;
   if (event.source !== window.parent) return false;
-  if (trustedPlatformOrigin && event.origin !== trustedPlatformOrigin) return false;
+  if (trustedPlatformOrigin && event.origin !== trustedPlatformOrigin)
+    return false;
   return true;
 }
 
 /** Publish standard platform:init for lobby-sdk / game listeners (same-window). */
 function publishPlatformInit(payload: SdkInitPayload) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   const message: PlatformInitMessage = {
-    type: 'platform:init',
+    type: "platform:init",
     version: SDK_VERSION,
     ...payload,
   };
   window.__OYNA360_PLATFORM_INIT__ = message;
   window.__OYNA360_PLATFORM_INIT_OK__ = true;
   window.dispatchEvent(
-    new MessageEvent('message', {
+    new MessageEvent("message", {
       data: message,
       origin: window.location.origin,
     }),
@@ -181,15 +203,20 @@ function onMessage(event: MessageEvent) {
   const data = event.data;
   if (!isCompleteInit(data)) {
     // Production parent may send init; accept even if avatar missing for backward compat
-    if (!data || typeof data !== 'object' || (data as { type?: string }).type !== 'platform:init') {
+    if (
+      !data ||
+      typeof data !== "object" ||
+      (data as { type?: string }).type !== "platform:init"
+    ) {
       return;
     }
     const message = data as PlatformInitMessage;
-    if (!message.session?.token || !message.user?.id || !message.game?.slug) return;
+    if (!message.session?.token || !message.user?.id || !message.game?.slug)
+      return;
     const avatar: SdkLobbyAvatar = message.avatar ?? {
-      presetId: 'default',
-      presetKey: 'default-1',
-      presetKind: 'procedural',
+      presetId: "default",
+      presetKey: "default-1",
+      presetKind: "procedural",
       customConfig: {},
     };
     rememberTrustedOrigin(event.origin);
@@ -206,13 +233,16 @@ function onMessage(event: MessageEvent) {
 }
 
 function signalReady() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   if (!isEmbeddedInPlatform()) return;
-  window.parent.postMessage({ type: 'platform:ready' }, getParentMessageTarget());
+  window.parent.postMessage(
+    { type: "platform:ready" },
+    getParentMessageTarget(),
+  );
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('message', onMessage);
+if (typeof window !== "undefined") {
+  window.addEventListener("message", onMessage);
   signalReady();
 }
 
@@ -229,24 +259,25 @@ function postToPlatform<T>(
       return;
     }
 
-    const requestId = stableRequestId ?? (
-      typeof crypto !== 'undefined' && crypto.randomUUID
+    const requestId =
+      stableRequestId ??
+      (typeof crypto !== "undefined" && crypto.randomUUID
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random()}`);
 
     const timer = setTimeout(() => {
-      window.removeEventListener('message', onResult);
-      reject(new Error('Platform SDK request timeout'));
+      window.removeEventListener("message", onResult);
+      reject(new Error("Platform SDK request timeout"));
     }, timeoutMs);
 
     function onResult(event: MessageEvent) {
       if (!isTrustedPlatformMessage(event)) return;
       const data = event.data;
-      if (!data || typeof data !== 'object' || data.type !== resultType) return;
+      if (!data || typeof data !== "object" || data.type !== resultType) return;
       if ((data as { requestId?: string }).requestId !== requestId) return;
 
       clearTimeout(timer);
-      window.removeEventListener('message', onResult);
+      window.removeEventListener("message", onResult);
       rememberTrustedOrigin(event.origin);
 
       const error = (data as { error?: string }).error;
@@ -258,16 +289,19 @@ function postToPlatform<T>(
       resolve((data as { result: T }).result);
     }
 
-    window.addEventListener('message', onResult);
-    window.parent.postMessage({ type: outboundType, requestId, ...payload }, getParentMessageTarget());
+    window.addEventListener("message", onResult);
+    window.parent.postMessage(
+      { type: outboundType, requestId, ...payload },
+      getParentMessageTarget(),
+    );
   });
 }
 
 function nestErrorMessage(data: unknown, fallback: string): string {
-  if (!data || typeof data !== 'object') return fallback;
+  if (!data || typeof data !== "object") return fallback;
   const message = (data as { message?: unknown }).message;
-  if (typeof message === 'string') return message;
-  if (Array.isArray(message)) return message.join(', ');
+  if (typeof message === "string") return message;
+  if (Array.isArray(message)) return message.join(", ");
   return fallback;
 }
 
@@ -284,32 +318,36 @@ async function apiRequest<T>(
   const base = directPlatformUrl;
   if (!base) {
     throw new Error(
-      'Direct API calls require platformUrl. Pass PlatformSDK.init({ platformUrl, gameSlug }) or window.__OYNA360_DEV__.',
+      "Direct API calls require platformUrl. Pass PlatformSDK.init({ platformUrl, gameSlug }) or window.__OYNA360_DEV__.",
     );
   }
 
   const headers: Record<string, string> = {
-    Accept: 'application/json',
+    Accept: "application/json",
   };
   if (options.body !== undefined) {
-    headers['Content-Type'] = 'application/json';
+    headers["Content-Type"] = "application/json";
   }
   if (options.auth !== false) {
     const token = initPayload?.session?.token;
     if (!token) {
-      throw new Error('PlatformSDK.init() must complete before calling this API');
+      throw new Error(
+        "PlatformSDK.init() must complete before calling this API",
+      );
     }
     headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(`${base}${path}`, {
-    method: options.method ?? (options.body !== undefined ? 'POST' : 'GET'),
+    method: options.method ?? (options.body !== undefined ? "POST" : "GET"),
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(nestErrorMessage(data, `Platform API error (${response.status})`));
+    throw new Error(
+      nestErrorMessage(data, `Platform API error (${response.status})`),
+    );
   }
   return data as T;
 }
@@ -322,7 +360,13 @@ function callPlatformFeature<T>(
   stableRequestId?: string,
 ): Promise<T> {
   if (isEmbeddedInPlatform()) {
-    return postToPlatform<T>(outboundType, payload, resultType, DEFAULT_REQUEST_TIMEOUT_MS, stableRequestId);
+    return postToPlatform<T>(
+      outboundType,
+      payload,
+      resultType,
+      DEFAULT_REQUEST_TIMEOUT_MS,
+      stableRequestId,
+    );
   }
   return directCall();
 }
@@ -330,26 +374,43 @@ function callPlatformFeature<T>(
 async function markDirectSessionReady() {
   if (!directPlatformUrl || !initPayload?.session?.token) return;
   try {
-    await apiRequest('/sessions/ready', { method: 'POST' });
+    await apiRequest("/sessions/ready", { method: "POST" });
   } catch {
     // Non-fatal: presence analytics only
   }
 }
 
 function resolveDevConfig(options?: PlatformSdkInitOptions) {
-  const fromWindow = typeof window !== 'undefined' ? window.__OYNA360_DEV__ : undefined;
-  const platformUrl = (options?.platformUrl || fromWindow?.platformUrl || '').replace(/\/$/, '');
-  const gameSlug = (options?.gameSlug || fromWindow?.gameSlug || '').trim();
-  const clientId = (options?.dev?.clientId || fromWindow?.clientId || '').trim();
-  const credential = (options?.dev?.credential || fromWindow?.credential || '').trim();
-  let platformWebUrl = (options?.platformWebUrl || fromWindow?.platformWebUrl || '').replace(/\/$/, '');
+  const fromWindow =
+    typeof window !== "undefined" ? window.__OYNA360_DEV__ : undefined;
+  const platformUrl = (
+    options?.platformUrl ||
+    fromWindow?.platformUrl ||
+    ""
+  ).replace(/\/$/, "");
+  const gameSlug = (options?.gameSlug || fromWindow?.gameSlug || "").trim();
+  const clientId = (
+    options?.dev?.clientId ||
+    fromWindow?.clientId ||
+    ""
+  ).trim();
+  const credential = (
+    options?.dev?.credential ||
+    fromWindow?.credential ||
+    ""
+  ).trim();
+  let platformWebUrl = (
+    options?.platformWebUrl ||
+    fromWindow?.platformWebUrl ||
+    ""
+  ).replace(/\/$/, "");
   if (!platformWebUrl && platformUrl) {
     try {
       // Same host as API by default (production reverse-proxy). Locally set platformWebUrl explicitly
       // when web (e.g. :3000) differs from API (e.g. :3001).
       platformWebUrl = new URL(platformUrl).origin;
     } catch {
-      platformWebUrl = '';
+      platformWebUrl = "";
     }
   }
   return { platformUrl, platformWebUrl, gameSlug, clientId, credential };
@@ -361,8 +422,8 @@ async function runCredentialGatewayBootstrap(
   const { platformUrl, clientId, credential } = resolveDevConfig(options);
   if (!platformUrl || !clientId || !credential) {
     throw new Error(
-      'Developer Environment requires platformUrl + dev.clientId + dev.credential. ' +
-        'Create them at /developer and pass PlatformSDK.init({ platformUrl, dev: { clientId, credential } }).',
+      "Developer Environment requires platformUrl + dev.clientId + dev.credential. " +
+        "Create them at /developer and pass PlatformSDK.init({ platformUrl, dev: { clientId, credential } }).",
     );
   }
 
@@ -370,36 +431,36 @@ async function runCredentialGatewayBootstrap(
   const origin = window.location.origin;
 
   const response = await fetch(`${platformUrl}/dev/gateway/session`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, credential, origin }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const msg =
-      typeof data.message === 'string'
+      typeof data.message === "string"
         ? data.message
         : Array.isArray(data.message)
-          ? data.message.join(', ')
-          : 'Dev gateway session failed';
+          ? data.message.join(", ")
+          : "Dev gateway session failed";
     throw new Error(msg);
   }
   const payload = data as SdkInitPayload;
   if (!payload?.session?.token || !payload.avatar || !payload.lobby?.wsUrl) {
-    throw new Error('Invalid SdkInitPayload from dev gateway');
+    throw new Error("Invalid SdkInitPayload from dev gateway");
   }
   return payload;
 }
 
 function readCodeFromUrl(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const url = new URL(window.location.href);
     const code = url.searchParams.get(DEV_CODE_QUERY);
     if (code) {
       url.searchParams.delete(DEV_CODE_QUERY);
-      url.searchParams.delete('oyna_dev_slug');
-      window.history.replaceState({}, '', url.toString());
+      url.searchParams.delete("oyna_dev_slug");
+      window.history.replaceState({}, "", url.toString());
     }
     return code;
   } catch {
@@ -413,23 +474,23 @@ async function exchangeDevCode(
   gameOrigin: string,
 ): Promise<SdkInitPayload> {
   const response = await fetch(`${platformUrl}/dev/game-auth/exchange`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code, gameOrigin }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const msg =
-      typeof data.message === 'string'
+      typeof data.message === "string"
         ? data.message
         : Array.isArray(data.message)
-          ? data.message.join(', ')
-          : 'Development authorization exchange failed';
+          ? data.message.join(", ")
+          : "Development authorization exchange failed";
     throw new Error(msg);
   }
   const payload = data as SdkInitPayload;
   if (!payload?.session?.token || !payload.avatar || !payload.lobby?.wsUrl) {
-    throw new Error('Invalid SdkInitPayload from development exchange');
+    throw new Error("Invalid SdkInitPayload from development exchange");
   }
   return payload;
 }
@@ -437,11 +498,17 @@ async function exchangeDevCode(
 function openDevAuthorizePopup(authUrl: string): Window | null {
   const width = 480;
   const height = 720;
-  const left = Math.max(0, Math.floor(window.screenX + (window.outerWidth - width) / 2));
-  const top = Math.max(0, Math.floor(window.screenY + (window.outerHeight - height) / 2));
+  const left = Math.max(
+    0,
+    Math.floor(window.screenX + (window.outerWidth - width) / 2),
+  );
+  const top = Math.max(
+    0,
+    Math.floor(window.screenY + (window.outerHeight - height) / 2),
+  );
   return window.open(
     authUrl,
-    'oyna360-dev-auth',
+    "oyna360-dev-auth",
     `popup=yes,width=${width},height=${height},left=${left},top=${top}`,
   );
 }
@@ -452,8 +519,8 @@ async function runDirectDevelopmentBootstrap(
   const { platformUrl, platformWebUrl, gameSlug } = resolveDevConfig(options);
   if (!platformUrl || !gameSlug || !platformWebUrl) {
     throw new Error(
-      'Direct Development Mode requires platformUrl + gameSlug (and platformWebUrl). ' +
-        'Set PlatformSDK.init({ platformUrl, gameSlug }) or window.__OYNA360_DEV__.',
+      "Direct Development Mode requires platformUrl + gameSlug (and platformWebUrl). " +
+        "Set PlatformSDK.init({ platformUrl, gameSlug }) or window.__OYNA360_DEV__.",
     );
   }
 
@@ -465,11 +532,16 @@ async function runDirectDevelopmentBootstrap(
     return exchangeDevCode(platformUrl, existingCode, gameOrigin);
   }
 
-  const returnPath = `${window.location.pathname}${window.location.search}${window.location.hash}` || '/';
-  const authUrl = new URL('/dev/game-auth', platformWebUrl);
-  authUrl.searchParams.set('slug', gameSlug);
-  authUrl.searchParams.set('origin', gameOrigin);
-  authUrl.searchParams.set('return', returnPath.startsWith('/') ? returnPath : '/');
+  const returnPath =
+    `${window.location.pathname}${window.location.search}${window.location.hash}` ||
+    "/";
+  const authUrl = new URL("/dev/game-auth", platformWebUrl);
+  authUrl.searchParams.set("slug", gameSlug);
+  authUrl.searchParams.set("origin", gameOrigin);
+  authUrl.searchParams.set(
+    "return",
+    returnPath.startsWith("/") ? returnPath : "/",
+  );
 
   return new Promise<SdkInitPayload>((resolve, reject) => {
     const timeoutMs = options?.timeout ?? 120_000;
@@ -477,7 +549,7 @@ async function runDirectDevelopmentBootstrap(
 
     const cleanup = () => {
       window.clearTimeout(timer);
-      window.removeEventListener('message', onAuthMessage);
+      window.removeEventListener("message", onAuthMessage);
     };
 
     const finish = (payload: SdkInitPayload) => {
@@ -497,16 +569,16 @@ async function runDirectDevelopmentBootstrap(
     const timer = window.setTimeout(() => {
       fail(
         new Error(
-          'Direct Development authorization timed out. Log in on the Oyna360 authorize page and allow popups.',
+          "Direct Development authorization timed out. Log in on the Oyna360 authorize page and allow popups.",
         ),
       );
     }, timeoutMs);
 
     const onAuthMessage = (event: MessageEvent) => {
       const data = event.data;
-      if (!data || typeof data !== 'object') return;
+      if (!data || typeof data !== "object") return;
       if ((data as { type?: string }).type !== DEV_AUTH_MESSAGE) return;
-      let expectedOrigin = '';
+      let expectedOrigin = "";
       try {
         expectedOrigin = new URL(platformWebUrl).origin;
       } catch {
@@ -518,7 +590,7 @@ async function runDirectDevelopmentBootstrap(
       void exchangeDevCode(platformUrl, code, gameOrigin).then(finish, fail);
     };
 
-    window.addEventListener('message', onAuthMessage);
+    window.addEventListener("message", onAuthMessage);
 
     const popup = openDevAuthorizePopup(authUrl.toString());
     if (!popup) {
@@ -539,7 +611,11 @@ function waitForIframeInit(timeoutMs: number): Promise<SdkInitPayload> {
     const timer = setTimeout(() => {
       const index = initWaiters.findIndex((w) => w.timer === timer);
       if (index >= 0) initWaiters.splice(index, 1);
-      reject(new Error('Platform SDK init timeout — is the game running inside the platform?'));
+      reject(
+        new Error(
+          "Platform SDK init timeout — is the game running inside the platform?",
+        ),
+      );
     }, timeoutMs);
 
     initWaiters.push({ resolve, reject, timer });
@@ -553,13 +629,15 @@ function waitForIframeInit(timeoutMs: number): Promise<SdkInitPayload> {
  * - Developer Environment: credential → POST /dev/gateway/session (no popup).
  * - Legacy Direct Development: authorize popup → one-time code → SdkInitPayload.
  */
-export async function init(options?: PlatformSdkInitOptions): Promise<SdkInitPayload> {
+export async function init(
+  options?: PlatformSdkInitOptions,
+): Promise<SdkInitPayload> {
   if (initPayload) {
     return initPayload;
   }
 
-  if (typeof window === 'undefined') {
-    throw new Error('PlatformSDK.init() requires a browser environment');
+  if (typeof window === "undefined") {
+    throw new Error("PlatformSDK.init() requires a browser environment");
   }
 
   // Pin API base early so Direct Dev feature calls work after init.
@@ -571,20 +649,25 @@ export async function init(options?: PlatformSdkInitOptions): Promise<SdkInitPay
   // Optional: pin expected parent origin early (iframe + Direct Dev).
   if (options?.platformWebUrl || earlyDev.platformWebUrl) {
     try {
-      rememberTrustedOrigin(new URL(options?.platformWebUrl || earlyDev.platformWebUrl).origin);
+      rememberTrustedOrigin(
+        new URL(options?.platformWebUrl || earlyDev.platformWebUrl).origin,
+      );
     } catch {
       // ignore invalid URL; message source check still applies in iframe mode
     }
   }
 
   // Already delivered by a trusted writer (this SDK or lobby-sdk after origin check)
-  if (window.__OYNA360_PLATFORM_INIT_OK__ && window.__OYNA360_PLATFORM_INIT__?.session?.token) {
+  if (
+    window.__OYNA360_PLATFORM_INIT_OK__ &&
+    window.__OYNA360_PLATFORM_INIT__?.session?.token
+  ) {
     const cached = asInitPayload(window.__OYNA360_PLATFORM_INIT__);
     if (!cached.avatar) {
       cached.avatar = {
-        presetId: 'default',
-        presetKey: 'default-1',
-        presetKind: 'procedural',
+        presetId: "default",
+        presetKey: "default-1",
+        presetKind: "procedural",
         customConfig: {},
       };
     }
@@ -638,17 +721,17 @@ export function isReady(): boolean {
 export async function submitScore(score: number): Promise<SubmitScoreResponse> {
   const payload = await init();
   if (score < 0 || !Number.isFinite(score)) {
-    throw new Error('Score must be a non-negative number');
+    throw new Error("Score must be a non-negative number");
   }
 
   const floorScore = Math.floor(score);
   return callPlatformFeature<SubmitScoreResponse>(
-    'platform:score:submit',
+    "platform:score:submit",
     { sessionToken: payload.session.token, score: floorScore },
-    'platform:score:result',
+    "platform:score:result",
     () =>
       apiRequest<SubmitScoreResponse>(`/games/${payload.game.slug}/scores`, {
-        method: 'POST',
+        method: "POST",
         body: { score: floorScore },
       }),
   );
@@ -659,9 +742,9 @@ export async function getLeaderboard(limit = 20): Promise<LeaderboardResponse> {
   const payload = await init();
   const safeLimit = Math.min(Math.max(Math.floor(limit) || 20, 1), 100);
   return callPlatformFeature<LeaderboardResponse>(
-    'platform:leaderboard:get',
+    "platform:leaderboard:get",
     { limit: safeLimit },
-    'platform:leaderboard:result',
+    "platform:leaderboard:result",
     () =>
       apiRequest<LeaderboardResponse>(
         `/games/${payload.game.slug}/leaderboard?limit=${safeLimit}`,
@@ -671,22 +754,27 @@ export async function getLeaderboard(limit = 20): Promise<LeaderboardResponse> {
 }
 
 /** Unlock an achievement for the current player. Idempotent. */
-export async function unlockAchievement(key: string): Promise<UnlockAchievementResponse> {
+export async function unlockAchievement(
+  key: string,
+): Promise<UnlockAchievementResponse> {
   const payload = await init();
   if (!key.trim()) {
-    throw new Error('Achievement key is required');
+    throw new Error("Achievement key is required");
   }
 
   const achievementKey = key.trim();
   return callPlatformFeature<UnlockAchievementResponse>(
-    'platform:achievement:unlock',
+    "platform:achievement:unlock",
     { sessionToken: payload.session.token, key: achievementKey },
-    'platform:achievement:unlock:result',
+    "platform:achievement:unlock:result",
     () =>
-      apiRequest<UnlockAchievementResponse>(`/games/${payload.game.slug}/achievements/unlock`, {
-        method: 'POST',
-        body: { key: achievementKey },
-      }),
+      apiRequest<UnlockAchievementResponse>(
+        `/games/${payload.game.slug}/achievements/unlock`,
+        {
+          method: "POST",
+          body: { key: achievementKey },
+        },
+      ),
   );
 }
 
@@ -694,10 +782,13 @@ export async function unlockAchievement(key: string): Promise<UnlockAchievementR
 export async function getAchievements(): Promise<AchievementsResponse> {
   const payload = await init();
   return callPlatformFeature<AchievementsResponse>(
-    'platform:achievements:get',
+    "platform:achievements:get",
     {},
-    'platform:achievements:result',
-    () => apiRequest<AchievementsResponse>(`/games/${payload.game.slug}/achievements/me`),
+    "platform:achievements:result",
+    () =>
+      apiRequest<AchievementsResponse>(
+        `/games/${payload.game.slug}/achievements/me`,
+      ),
   );
 }
 
@@ -705,10 +796,11 @@ export async function getAchievements(): Promise<AchievementsResponse> {
 export async function getWallet(): Promise<WalletBalanceResponse> {
   const payload = await init();
   return callPlatformFeature<WalletBalanceResponse>(
-    'platform:wallet:get',
+    "platform:wallet:get",
     {},
-    'platform:wallet:result',
-    () => apiRequest<WalletBalanceResponse>(`/games/${payload.game.slug}/wallet`),
+    "platform:wallet:result",
+    () =>
+      apiRequest<WalletBalanceResponse>(`/games/${payload.game.slug}/wallet`),
   );
 }
 
@@ -716,37 +808,110 @@ export async function getWallet(): Promise<WalletBalanceResponse> {
  * Convert platform gems into in-game coins.
  * Platform deducts gems; the game must credit `coinsReceived` to its own economy.
  */
-export async function convertGems(gems: number, requestId?: string): Promise<ConvertGemsResponse> {
+function operationId(value?: string): string {
+  const id =
+    value ??
+    (typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2));
+  if (!/^[A-Za-z0-9_-]{8,128}$/.test(id))
+    throw new Error(
+      "requestId must contain 8-128 ASCII letters, digits, underscores or hyphens",
+    );
+  return id;
+}
+function requiredOperationId(value: string) {
+  if (typeof value !== "string") throw new Error("requestId is required");
+  return operationId(value);
+}
+function itemKey(value: string) {
+  if (!/^[A-Za-z0-9:_-]{1,100}$/.test(value))
+    throw new Error("Invalid item ID");
+  return value;
+}
+async function commerce<T>(
+  operation: string,
+  args: Record<string, unknown> = {},
+): Promise<T> {
   const payload = await init();
-  if (!Number.isInteger(gems) || gems < 1) {
-    throw new Error('gems must be a positive integer');
-  }
-  if (requestId !== undefined && !/^[A-Za-z0-9_-]{8,128}$/.test(requestId)) {
-    throw new Error('requestId must contain 8-128 ASCII letters, digits, underscores or hyphens');
-  }
-
-  return callPlatformFeature<ConvertGemsResponse>(
-    'platform:gems:exchange',
-    { sessionToken: payload.session.token, gems },
-    'platform:gems:exchange:result',
+  return callPlatformFeature<T>(
+    "platform:commerce:request",
+    { operation, args },
+    "platform:commerce:result",
     () =>
-      apiRequest<ConvertGemsResponse>(`/games/${payload.game.slug}/wallet/exchange`, {
-        method: 'POST',
-        body: { gems, requestId },
-      }),
-    requestId,
+      apiRequest<T>(
+        `/games/${encodeURIComponent(payload.game.slug)}/commerce`,
+        { method: "POST", body: { operation, args } },
+      ),
   );
+}
+export async function convertGems(
+  gems: number,
+  requestId?: string,
+): Promise<ConvertGemsResponse> {
+  if (!Number.isSafeInteger(gems) || gems < 1)
+    throw new Error("gems must be a positive safe integer");
+  return commerce<ConvertGemsResponse>("exchange", {
+    gems,
+    requestId: operationId(requestId),
+  });
+}
+export function getProducts(): Promise<ProductsResponse> {
+  return commerce("products");
+}
+/** Persist requestId before sending and reuse it when recovering/retrying the same purchase. */
+export function purchaseProduct(
+  itemId: string,
+  requestId?: string,
+): Promise<PurchaseReceipt> {
+  return commerce("purchase", {
+    itemId: itemKey(itemId),
+    requestId: operationId(requestId),
+  });
+}
+export function getPurchaseStatus(requestId: string): Promise<PurchaseStatus> {
+  return commerce("purchaseStatus", {
+    requestId: requiredOperationId(requestId),
+  });
+}
+export function getPurchaseReceipts(
+  cursor?: string,
+): Promise<PurchaseReceipts> {
+  if (cursor !== undefined && !/^[A-Za-z0-9-]{1,100}$/.test(cursor))
+    throw new Error("Invalid receipt cursor");
+  return commerce("receipts", cursor ? { cursor } : {});
+}
+export function getInventory(): Promise<InventoryResponse> {
+  return commerce("inventory");
+}
+export function consumeItem(
+  itemId: string,
+  quantity: number,
+  requestId?: string,
+): Promise<ConsumeItemResponse> {
+  if (!Number.isSafeInteger(quantity) || quantity < 1)
+    throw new Error("quantity must be a positive safe integer");
+  return commerce("consume", {
+    itemId: itemKey(itemId),
+    quantity,
+    requestId: operationId(requestId),
+  });
+}
+export function getExchangeStatus(requestId: string): Promise<ExchangeStatus> {
+  return commerce("exchangeStatus", {
+    requestId: requiredOperationId(requestId),
+  });
 }
 
 export async function endSession(): Promise<void> {
   const token = initPayload?.session.token;
-  if (!token || typeof window === 'undefined') return;
+  if (!token || typeof window === "undefined") return;
 
   if (isEmbeddedInPlatform()) {
     const target = getParentMessageTarget();
     window.parent.postMessage(
       {
-        type: 'platform:session:end',
+        type: "platform:session:end",
         sessionToken: token,
       },
       target,
@@ -756,8 +921,8 @@ export async function endSession(): Promise<void> {
 
   if (directPlatformUrl) {
     try {
-      await apiRequest('/sessions/end', {
-        method: 'POST',
+      await apiRequest("/sessions/end", {
+        method: "POST",
         body: { token },
         auth: false,
       });
@@ -780,6 +945,13 @@ export const PlatformSDK = {
   getAchievements,
   getWallet,
   convertGems,
+  getProducts,
+  purchaseProduct,
+  getPurchaseStatus,
+  getPurchaseReceipts,
+  getInventory,
+  consumeItem,
+  getExchangeStatus,
   endSession,
 };
 

@@ -6,14 +6,21 @@ SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 
 - هویت بازیکن و سشن را بگیرد
 - امتیاز، لیدربورد، دستاورد و کیف‌پول جِم را صدا بزند
+- محصول بازی را با جم بخرد، رسید را بازیابی کند و موجودی/مصرف آیتم را از سرور بگیرد
 - در **Production** داخل iframe پلتفرم کار کند
 - در **Development** بدون iframe، مستقیم به سرور oyna360 وصل شود
 
-**نسخه:** `0.6.0` · بدون وابستگی runtime · TypeScript داخل پکیج
+**نسخه:** `0.7.0` · بدون وابستگی runtime · TypeScript داخل پکیج
 
 > برای لابی ۳D و لود آواتار از [`@oyna360/lobby-babylon`](https://www.npmjs.com/package/@oyna360/lobby-babylon) استفاده کنید؛ `@oyna360/lobby-sdk` فقط Core شبکه و state است. [مرجع استاندارد آواتار و راهنمای AI](https://github.com/mamadjavadrasti/oyna360-lobby-babylon/blob/master/docs/08-avatars.md).
 
 ---
+
+## قابلیت‌های خرید در ۰٫۷٫۰
+
+`purchaseProduct` · `getPurchaseStatus` · `getPurchaseReceipts` · `getInventory` · `consumeItem` · `getProducts` · `getExchangeStatus`
+
+[راهنمای کامل خرید و بازیابی](docs/08-wallet.md) · [پیش‌نیاز انتشار بک‌اند و وضعیت npm](docs/12-commerce-release.md)
 
 ## نصب
 
@@ -26,7 +33,7 @@ pnpm add @oyna360/game-sdk
 ```json
 {
   "dependencies": {
-    "@oyna360/game-sdk": "^0.6.0"
+    "@oyna360/game-sdk": "^0.7.0"
   }
 }
 ```

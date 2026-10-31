@@ -40,7 +40,7 @@ export declare function getWallet(): Promise<WalletBalanceResponse>;
  * Convert platform gems into in-game coins.
  * Platform deducts gems; the game must credit `coinsReceived` to its own economy.
  */
-export declare function convertGems(gems: number): Promise<ConvertGemsResponse>;
+export declare function convertGems(gems: number, requestId?: string): Promise<ConvertGemsResponse>;
 export declare function endSession(): Promise<void>;
 export declare const PlatformSDK: {
     version: string;

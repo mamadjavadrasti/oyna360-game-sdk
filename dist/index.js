@@ -175,15 +175,15 @@ if (typeof window !== 'undefined') {
     window.addEventListener('message', onMessage);
     signalReady();
 }
-function postToPlatform(outboundType, payload, resultType, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS) {
+function postToPlatform(outboundType, payload, resultType, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, stableRequestId) {
     return new Promise((resolve, reject) => {
         if (!isEmbeddedInPlatform()) {
             reject(new Error(`${outboundType} requires the platform iframe parent`));
             return;
         }
-        const requestId = typeof crypto !== 'undefined' && crypto.randomUUID
+        const requestId = stableRequestId ?? (typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random()}`;
+            : `${Date.now()}-${Math.random()}`);
         const timer = setTimeout(() => {
             window.removeEventListener('message', onResult);
             reject(new Error('Platform SDK request timeout'));
@@ -250,9 +250,9 @@ async function apiRequest(path, options = {}) {
     }
     return data;
 }
-function callPlatformFeature(outboundType, payload, resultType, directCall) {
+function callPlatformFeature(outboundType, payload, resultType, directCall, stableRequestId) {
     if (isEmbeddedInPlatform()) {
-        return postToPlatform(outboundType, payload, resultType);
+        return postToPlatform(outboundType, payload, resultType, DEFAULT_REQUEST_TIMEOUT_MS, stableRequestId);
     }
     return directCall();
 }
@@ -564,15 +564,18 @@ async function getWallet() {
  * Convert platform gems into in-game coins.
  * Platform deducts gems; the game must credit `coinsReceived` to its own economy.
  */
-async function convertGems(gems) {
+async function convertGems(gems, requestId) {
     const payload = await init();
     if (!Number.isInteger(gems) || gems < 1) {
         throw new Error('gems must be a positive integer');
     }
+    if (requestId !== undefined && !/^[A-Za-z0-9_-]{8,128}$/.test(requestId)) {
+        throw new Error('requestId must contain 8-128 ASCII letters, digits, underscores or hyphens');
+    }
     return callPlatformFeature('platform:gems:exchange', { sessionToken: payload.session.token, gems }, 'platform:gems:exchange:result', () => apiRequest(`/games/${payload.game.slug}/wallet/exchange`, {
         method: 'POST',
-        body: { gems },
-    }));
+        body: { gems, requestId },
+    }), requestId);
 }
 async function endSession() {
     const token = initPayload?.session.token;

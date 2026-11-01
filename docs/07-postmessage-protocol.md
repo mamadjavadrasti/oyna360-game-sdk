@@ -43,3 +43,11 @@
 به‌جای parent، Authorize HTTP استفاده می‌شود؛ ولی **شکل نهایی Context همان `SdkInitPayload` است** تا lobby-sdk و کد بازی یکسان بمانند.
 
 بعدی: [08-wallet.md](./08-wallet.md)
+
+## Commerce 0.7
+
+Game → parent: `{type: 'platform:commerce:request', requestId, operation, args}`.
+Parent → game: `{type: 'platform:commerce:result', requestId, result?, error?}`.
+The top-level requestId correlates the RPC; args.requestId is the persisted business operation ID.
+Operations: products, purchase, purchaseStatus, receipts, inventory, consume, exchange, exchangeStatus.
+Only accept replies from the real parent and pinned platform origin. The parent binds every REST call to the authenticated launched game session.

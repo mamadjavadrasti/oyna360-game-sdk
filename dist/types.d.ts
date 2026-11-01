@@ -1,6 +1,6 @@
 /** Public SDK contract — keep in sync with platform `@platform/types` when protocol changes. */
-export declare const SDK_VERSION = "0.6.0";
-export type AvatarPresetKind = 'procedural' | 'glb';
+export declare const SDK_VERSION = "0.7.0";
+export type AvatarPresetKind = "procedural" | "glb";
 export interface SdkLobbyAvatar {
     presetId: string;
     presetKey: string;
@@ -38,7 +38,7 @@ export interface SdkInitPayload {
     };
 }
 export interface PlatformInitMessage extends SdkInitPayload {
-    type: 'platform:init';
+    type: "platform:init";
     version: string;
 }
 export interface PlatformSdkInitOptions {
@@ -114,10 +114,64 @@ export interface WalletBalanceResponse {
     gameSlug: string;
 }
 export interface ConvertGemsResponse {
+    id: string;
+    requestId: string;
     gemsSpent: number;
     coinsReceived: number;
     coinsPerGem: number;
     gemsRemaining: number;
     gameSlug: string;
+}
+export interface GameProduct {
+    itemId: string;
+    title: string;
+    priceGems: number;
+    quantity: number;
+    consumable: boolean;
+}
+export interface ProductsResponse {
+    gameSlug: string;
+    products: GameProduct[];
+}
+export interface PurchaseReceipt {
+    id: string;
+    requestId: string;
+    itemId: string;
+    gemsSpent: number;
+    gemsRemaining: number;
+    coins: number;
+    weapon: string | null;
+    quantity: number;
+    consumable: boolean;
+    createdAt: string;
+    gameSlug: string;
+}
+export interface PurchaseStatus {
+    status: "COMPLETED" | "NOT_FOUND";
+    receipt?: PurchaseReceipt;
+}
+export interface PurchaseReceipts {
+    receipts: PurchaseReceipt[];
+    next: string | null;
+}
+export interface InventoryResponse {
+    gameSlug: string;
+    items: {
+        itemId: string;
+        quantity: number;
+        consumable: boolean;
+    }[];
+}
+export interface ConsumeItemResponse {
+    id: string;
+    requestId: string;
+    itemId: string;
+    quantity: number;
+    remaining: number;
+    gameSlug: string;
+}
+export interface ExchangeStatus {
+    status: "COMPLETED" | "NOT_FOUND";
+    result?: ConvertGemsResponse;
 }
 //# sourceMappingURL=types.d.ts.map

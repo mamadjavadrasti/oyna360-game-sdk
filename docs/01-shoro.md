@@ -11,7 +11,7 @@ pnpm add @oyna360/game-sdk
 ```json
 {
   "dependencies": {
-    "@oyna360/game-sdk": "^0.5.2"
+    "@oyna360/game-sdk": "^0.7.1"
   }
 }
 ```
@@ -34,15 +34,24 @@ import { init, getUser, submitScore } from '@oyna360/game-sdk';
 
 ---
 
-## پیش‌نیاز ثبت بازی در ادمین oyna360
+## ثبت بازی در اوینا
+
+بازی پلتفرمی را ادمین از پنل بازی‌ها ثبت و منتشر می‌کند. برای بازی توسعه‌دهنده،
+ادمین ابتدا نقش «توسعه‌دهنده» را به یک حساب ثبت‌شده می‌دهد؛ توسعه‌دهنده بازی را
+از `/developer` می‌سازد. این بازی در ابتدا «در حال توسعه» است و تا تأیید ادمین در
+کاتالوگ عمومی یا `/play/:slug` نمایش داده نمی‌شود. بعد از تکمیل، درخواست بازبینی
+ارسال می‌شود؛ ادمین می‌تواند بازی را منتشر کند یا با دلیل برای اصلاح برگرداند.
+شناسه و slug بازی پس از انتشار حفظ می‌شوند.
+
+## پیش‌نیاز اتصال بازی
 
 | فیلد | توضیح |
 |------|--------|
 | `slug` | شناسه یکتای بازی در URL: `/play/{slug}` |
 | `entryUrl` | آدرس باندل بازی (Production یا در Dev مثلاً `http://localhost:5180`) |
 | `allowedOrigins` | لیست originهای مجاز بازی به‌صورت `scheme://host:port` |
-| `minSdkVersion` | حداقل نسخه game-sdk (مثلاً `0.5.0`) |
-| وضعیت | بازی باید Published باشد |
+| `minSdkVersion` | حداقل نسخهٔ سازگار runtime game-sdk (مثلاً `0.7.0`) |
+| وضعیت | بازی پلتفرمی برای اجرا باید Published باشد؛ بازی توسعه‌دهنده با Developer Environment هم پیش از انتشار قابل تست است |
 
 ### مثال Origin
 
@@ -74,14 +83,19 @@ import { init, getUser, submitScore } from '@oyna360/game-sdk';
 
 ---
 
-## Development — دو راه
+## Development — سه راه
 
-### الف) Direct Development (پیشنهادی اگر پلتفرم لوکال ندارید)
+### الف) Developer Environment (برای بازی توسعه‌دهنده)
+
+از `clientId` و Credential بازی توسعه در `PlatformSDK.init()` استفاده کنید. راهنما:
+[10-developer-environment.md](./10-developer-environment.md)
+
+### ب) Direct Development قدیمی (slug + authorize)
 
 بازی روی Vite؛ اتصال به سرور واقعی oyna360.  
 راهنما: [09-direct-development.md](./09-direct-development.md)
 
-### ب) iframe با entryUrl لوکال
+### پ) iframe با entryUrl لوکال
 
 1. در ادمین موقتاً `entryUrl` = `http://localhost:PORT`
 2. `allowedOrigins` شامل همان origin
@@ -94,5 +108,6 @@ import { init, getUser, submitScore } from '@oyna360/game-sdk';
 - `session.token` را در localStorage / Git نگذارید.
 - USER/PASS پلتفرم را در `.env` بازی نگذارید.
 - در Direct Mode از Authorize رسمی استفاده کنید؛ توکن یک‌بارمصرف است.
+- Developer Credential را فقط در محیط توسعه/آزمایشی محدود به دامنه‌های مجاز استفاده کنید؛ مقدار `VITE_` داخل bundle عمومی مرورگر قرار می‌گیرد.
 
 بعدی: [02-init.md](./02-init.md)

@@ -8,10 +8,13 @@
 
 ```ts
 const { products } = await PlatformSDK.getProducts();
-// {itemId, title, priceGems, quantity, consumable}[] — قیمت فقط روی سرور تعیین می‌شود.
+// هر محصول: itemId, developerItemId?, title, currency, priceGems, priceCoins,
+// grantType, grantKey, quantity, consumable, purchaseHandler
+const potion = products.find((product) => product.developerItemId === 'magic_potion');
+if (!potion || potion.purchaseHandler !== 'PLATFORM') throw new Error('محصول برای خرید جم در دسترس نیست');
 const requestId = crypto.randomUUID();
 // قبل از ارسال، شناسه را کنار خرید در ذخیره‌سازی پایدارِ بازی نگه دارید.
-const receipt = await PlatformSDK.purchaseProduct(products[0].itemId, requestId);
+const receipt = await PlatformSDK.purchaseProduct(potion!.itemId, requestId);
 // {id, requestId, itemId, gemsSpent, gemsRemaining, quantity, consumable, gameSlug, createdAt, ...}
 ```
 
@@ -37,8 +40,12 @@ const nextPage = page.next ? await PlatformSDK.getPurchaseReceipts(page.next) : 
 ```ts
 const inventory = await PlatformSDK.getInventory();
 // {gameSlug, items: [{itemId, quantity, consumable}]}
+const product = (await PlatformSDK.getProducts()).products.find(
+  (item) => item.developerItemId === 'magic_potion',
+);
+const ownedItem = inventory.items.find((item) => item.itemId === product?.itemId);
 const useId = crypto.randomUUID(); // پیش از مصرف ذخیره شود
-const used = await PlatformSDK.consumeItem('potion', 1, useId);
+if (ownedItem) await PlatformSDK.consumeItem(ownedItem.itemId, 1, useId);
 // {id, requestId, itemId, quantity, remaining, gameSlug}
 ```
 
@@ -60,6 +67,6 @@ const recovered = await PlatformSDK.getExchangeStatus(id);
 
 ## پیکربندی محصولات
 
-قیمت و مقدار در پلتفرم تعریف می‌شود؛ SDK قیمت دلخواه قبول نمی‌کند. پلتفرم مسیر ادمین محافظت‌شدهٔ `PUT /api/admin/games/:gameId/products/:itemId` دارد با بدنهٔ `{title, priceGems, quantity, consumable, active}`. این مسیر را از کلاینت بازی صدا نزنید و توکن ادمین را داخل بازی قرار ندهید.
+قیمت و مقدار در پلتفرم تعریف می‌شود؛ SDK قیمت دلخواه قبول نمی‌کند. توسعه‌دهنده از **پنل توسعه‌دهنده → بازی → محصولات جم** و ادمین از **مدیریت بازی → محصولات** کاتالوگ را مدیریت می‌کند. ورود گروهی فایل JSON هم در هر دو پنل پشتیبانی می‌شود؛ قالب و فایل نمونه در [راهنمای اوینا مارکت](./13-oyna-market.md) است. شناسهٔ قطعی محصول توسعه‌دهنده با پیشوند پروژه ساخته می‌شود؛ مثلاً `projectId:magic_potion`. کاتالوگ SDK هر دو مقدار را برمی‌گرداند: `developerItemId` برای اتصال به آیتم داخلی بازی و `itemId` کامل برای خرید، دریافت موجودی و مصرف. API مالک‌محور ثبت محصول `PUT /api/developer/projects/:id/products/:itemId` است؛ توکن حساب توسعه‌دهنده را داخل بازی نگذارید. مسیر ادمین `PUT /api/admin/games/:gameId/products/:itemId` نیز برای مدیریت کامل کاتالوگ در دسترس ادمین می‌ماند.
 
-محصول دائمی باید `quantity: 1` داشته باشد. برای تغییر مصرفی/دائمی بودن، شناسهٔ آیتم جدید تعریف کنید. کاتالوگ قدیمی گانچیکو حفظ می‌شود، ولی بازی‌های دیگر باید محصولات خود را روی سرور تعریف کنند.
+محصول دائمی باید `quantity: 1` داشته باشد. برای تغییر مصرفی/دائمی بودن یا نوع تحویل، شناسهٔ آیتم جدید تعریف کنید. `currency` واحد پرداخت را تعیین می‌کند؛ محصول `GAME_COINS` را سرور بازی می‌فروشد و نباید آن را با `purchaseProduct` خرید. `grantType: GAME_COINS` محصولی است که با جم خریده می‌شود و نتیجه‌اش بستهٔ سکه است. ثبت محصول در مارکت، مدل یا رفتار داخل بازی را ایجاد نمی‌کند. جزئیات فیلدها و مرز مسئولیت سرور بازی در [راهنمای اوینا مارکت](./13-oyna-market.md) آمده است.

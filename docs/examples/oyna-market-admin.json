@@ -1,0 +1,50 @@
+[
+  {
+    "itemId": "magic_potion",
+    "title": "معجون جادویی",
+    "currency": "GEMS",
+    "priceGems": 20,
+    "priceCoins": 0,
+    "grantType": "ITEM",
+    "grantKey": "magic_potion",
+    "quantity": 1,
+    "consumable": true,
+    "active": true
+  },
+  {
+    "itemId": "starter_outfit",
+    "title": "لباس آغازین",
+    "currency": "GEMS",
+    "priceGems": 75,
+    "priceCoins": 0,
+    "grantType": "ITEM",
+    "grantKey": "starter_outfit",
+    "quantity": 1,
+    "consumable": false,
+    "active": true
+  },
+  {
+    "itemId": "gold_pack_100",
+    "title": "بستهٔ ۱۰۰ سکه",
+    "currency": "GEMS",
+    "priceGems": 10,
+    "priceCoins": 0,
+    "grantType": "GAME_COINS",
+    "grantKey": null,
+    "quantity": 100,
+    "consumable": true,
+    "active": true
+  },
+  {
+    "itemId": "shield_coin",
+    "title": "سپر",
+    "currency": "GAME_COINS",
+    "priceGems": 0,
+    "priceCoins": 150,
+    "grantType": "ITEM",
+    "grantKey": "shield",
+    "quantity": 1,
+    "consumable": false,
+    "active": true
+  }
+]

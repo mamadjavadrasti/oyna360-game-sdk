@@ -139,10 +139,20 @@ export interface ConvertGemsResponse {
 
 export interface GameProduct {
   itemId: string;
+  /** Local product key declared by a developer project; itemId is the canonical SDK key. */
+  developerItemId?: string;
   title: string;
   priceGems: number;
+  /** Currency used to pay. GAME_COINS products are handled by the game's server. */
+  currency?: "GEMS" | "GAME_COINS";
+  priceCoins?: number;
+  /** What the purchase grants; independent from `currency`. */
+  grantType?: "ITEM" | "GAME_COINS";
+  grantKey?: string | null;
   quantity: number;
   consumable: boolean;
+  /** Present on catalog responses. */
+  purchaseHandler?: "PLATFORM" | "GAME_SERVER";
 }
 export interface ProductsResponse {
   gameSlug: string;

@@ -1,0 +1,18 @@
+[
+  {
+    "itemId": "magic_potion",
+    "title": "معجون جادویی",
+    "priceGems": 20,
+    "quantity": 1,
+    "consumable": true,
+    "active": true
+  },
+  {
+    "itemId": "starter_outfit",
+    "title": "لباس آغازین",
+    "priceGems": 75,
+    "quantity": 1,
+    "consumable": false,
+    "active": true
+  }
+]

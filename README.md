@@ -7,10 +7,11 @@ SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 - هویت بازیکن و سشن را بگیرد
 - امتیاز، لیدربورد، دستاورد و کیف‌پول جِم را صدا بزند
 - محصول بازی را با جم بخرد، رسید را بازیابی کند و موجودی/مصرف آیتم را از سرور بگیرد
+- کاتالوگ **اوینا مارکت** را بخواند و روش پرداخت هر محصول را تشخیص دهد
 - در **Production** داخل iframe پلتفرم کار کند
 - در **Development** بدون iframe، مستقیم به سرور oyna360 وصل شود
 
-**نسخه:** `0.7.0` · بدون وابستگی runtime · TypeScript داخل پکیج
+**نسخهٔ پکیج:** `0.7.1` · شناسهٔ runtime در `PlatformSDK.version`: `0.7.0` · بدون وابستگی runtime
 
 > برای لابی ۳D و لود آواتار از [`@oyna360/lobby-babylon`](https://www.npmjs.com/package/@oyna360/lobby-babylon) استفاده کنید؛ `@oyna360/lobby-sdk` فقط Core شبکه و state است. [مرجع استاندارد آواتار و راهنمای AI](https://github.com/mamadjavadrasti/oyna360-lobby-babylon/blob/master/docs/08-avatars.md).
 
@@ -21,6 +22,9 @@ SDK رسمی اتصال **بازی شما** به **پلتفرم oyna360**.
 `purchaseProduct` · `getPurchaseStatus` · `getPurchaseReceipts` · `getInventory` · `consumeItem` · `getProducts` · `getExchangeStatus`
 
 [راهنمای کامل خرید و بازیابی](docs/08-wallet.md) · [پیش‌نیاز انتشار بک‌اند و وضعیت npm](docs/12-commerce-release.md)
+
+کاتالوگ اوینا مارکت، خرید با جم یا سکهٔ بازی و قالب دقیق ورود گروهی:
+[راهنمای اوینا مارکت و JSON](docs/13-oyna-market.md) · [نمونهٔ توسعه‌دهنده](docs/examples/oyna-market-developer.json) · [نمونهٔ ادمین](docs/examples/oyna-market-admin.json)
 
 ## نصب
 
@@ -33,7 +37,7 @@ pnpm add @oyna360/game-sdk
 ```json
 {
   "dependencies": {
-    "@oyna360/game-sdk": "^0.7.0"
+    "@oyna360/game-sdk": "^0.7.1"
   }
 }
 ```
@@ -50,7 +54,7 @@ pnpm update @oyna360/game-sdk
 
 ---
 
-## دو حالت اجرا
+## حالت‌های اجرا
 
 | حالت | چطور بازی باز می‌شود | `init()` از کجا Context می‌گیرد |
 |------|----------------------|----------------------------------|
@@ -97,7 +101,7 @@ boot().catch(console.error);
 ## شروع سریع — Developer Environment (توصیه‌شده)
 
 1. در oyna360 وارد شوید و به `/developer` بروید.
-2. Dev Project بسازید و Origin لوکال (مثلاً `http://localhost:5173`) را اضافه کنید.
+2. با نقش توسعه‌دهنده یک بازی ثبت کنید و Origin لوکال (مثلاً `http://localhost:5173`) را در دامنه‌های مجاز بگذارید.
 3. Credential صادر کنید و در `.env` بازی بگذارید.
 
 ```ts
@@ -111,7 +115,7 @@ await PlatformSDK.init({
 });
 ```
 
-بدون ساختن بازی در Catalog و بدون popup هر بار. جزئیات: [docs/10-developer-environment.md](./docs/10-developer-environment.md)
+بدون انتشار عمومی بازی و بدون popup هر بار. بازی پس از تکمیل برای بازبینی ادمین ارسال می‌شود؛ شناسه و slug آن پس از انتشار هم حفظ می‌شود. جزئیات: [docs/10-developer-environment.md](./docs/10-developer-environment.md)
 
 ---
 
@@ -159,6 +163,7 @@ await PlatformSDK.init();
 | لیدربورد | [docs/06-leaderboard.md](./docs/06-leaderboard.md) |
 | پروتکل postMessage | [docs/07-postmessage-protocol.md](./docs/07-postmessage-protocol.md) |
 | جِم و سکه | [docs/08-wallet.md](./docs/08-wallet.md) |
+| اوینا مارکت، کاتالوگ خرید و JSON محصولات | [docs/13-oyna-market.md](./docs/13-oyna-market.md) |
 | Direct Development Mode | [docs/09-direct-development.md](./docs/09-direct-development.md) |
 | دستاوردها | [docs/10-achievements.md](./docs/10-achievements.md) |
 | عیب‌یابی | [docs/11-troubleshooting.md](./docs/11-troubleshooting.md) |
@@ -175,10 +180,14 @@ await PlatformSDK.init();
 | `submitScore` / `getLeaderboard` | امتیاز | ✅ | ✅ |
 | `unlockAchievement` / `getAchievements` | دستاورد | ✅ | ✅ |
 | `getWallet` / `convertGems` | جِم | ✅ | ✅ |
+| `getProducts` | دریافت محصولات فعال اوینا مارکت | ✅ | ✅ |
+| `purchaseProduct` | خرید محصولی که `purchaseHandler` آن `PLATFORM` است | ✅ | ✅ |
+| `getPurchaseStatus` / `getPurchaseReceipts` | بازیابی رسید خرید | ✅ | ✅ |
+| `getInventory` / `consumeItem` | موجودی و مصرف آیتم پلتفرمی | ✅ | ✅ |
 
 Production از `postMessage` به parent استفاده می‌کند؛ Direct Dev همان endpointهای REST را با session token صدا می‌زند.
 
-`PlatformSDK.version` → `'0.5.2'`
+`PlatformSDK.version` → `'0.7.0'` (نسخهٔ پکیج npm: `0.7.1`)
 
 ---
 
